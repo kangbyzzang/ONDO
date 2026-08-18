@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { demoProfiles } from "./data/demo-profiles";
 import {
   type AnswerValue,
@@ -43,10 +43,12 @@ const copy = {
     importanceHint: "절대 조건으로 선택하면 맞지 않는 상대는 추천에서 제외돼요.",
     save: "프로필 저장하기",
     saving: "분석하고 있어요…",
-    completeTitle: "관계의 온도를 찾았어요.",
-    completeBody: "첫 진단이 완료됐어요. 답변을 더할수록 추천과 적합도 분석이 더 정교해져요.",
-    more: "다음 5개 질문으로 정확도 높이기",
-    restart: "처음부터 다시",
+    completeTitle: "설문이 완료되었어요.",
+    completeBody: "답변이 안전하게 저장되었고 관리자 매칭 분석에 반영됩니다.",
+    completeStatus: "응답 저장 완료",
+    retryStatus: "저장 확인 필요",
+    retryBody: "설문은 완료되었지만 저장 상태를 확인하지 못했어요. 처음 화면으로 돌아가 다시 제출해주세요.",
+    restart: "처음 화면으로",
   },
   ja: {
     eyebrow: "KOREA × JAPAN, SERIOUSLY",
@@ -68,10 +70,12 @@ const copy = {
     importanceHint: "絶対条件にすると、合わない相手は推薦から除外されます。",
     save: "プロフィールを保存",
     saving: "分析しています…",
-    completeTitle: "あなたの関係温度が分かりました。",
-    completeBody: "最初の診断が完了しました。回答を増やすほど、相性分析の精度が上がります。",
-    more: "あと5問で精度を上げる",
-    restart: "最初からやり直す",
+    completeTitle: "アンケートが完了しました。",
+    completeBody: "回答は安全に保存され、管理者のマッチング分析に反映されます。",
+    completeStatus: "回答を保存しました",
+    retryStatus: "保存状態の確認が必要です",
+    retryBody: "アンケートは完了しましたが、保存状態を確認できませんでした。最初の画面に戻って、もう一度送信してください。",
+    restart: "最初の画面へ",
   },
 };
 
@@ -277,30 +281,24 @@ function QuestionScreen({
   );
 }
 
-function CompleteScreen({ locale, profile, saved, onRestart }: { locale: Locale; profile: MatchProfile; saved: boolean; onRestart: () => void }) {
+function CompleteScreen({ locale, saved, onRestart }: { locale: Locale; saved: boolean; onRestart: () => void }) {
   const t = copy[locale];
-  const completion = profileCompletion(profile);
-  const top = demoProfiles
-    .map((candidate) => calculateMatch(profile, candidate))
-    .filter((result) => result.eligible)
-    .sort((a, b) => b.overall - a.overall)[0];
-  const displayCompletion = Math.min(62, Math.max(48, completion));
 
   return (
     <main className="complete-page">
       <section className="complete-card">
-        <div className="completion-orbit"><span>{displayCompletion}<small>%</small></span><em>PROFILE</em></div>
+        <div className={`completion-check ${saved ? "saved" : "pending"}`} aria-hidden="true">
+          <span>{saved ? "✓" : "!"}</span>
+        </div>
         <div className="complete-copy">
-          <div className="eyebrow"><span>●</span>INITIAL PROFILE COMPLETE</div>
+          <div className="eyebrow"><span>●</span>SURVEY COMPLETE</div>
           <h1>{t.completeTitle}</h1>
-          <p>{t.completeBody}</p>
-          <div className="result-strip">
-            <div><small>{locale === "ko" ? "프로필 정확도" : "プロフィール精度"}</small><strong>{displayCompletion}%</strong></div>
-            <div><small>{locale === "ko" ? "예상 상위 적합도" : "予想上位相性"}</small><strong>{top?.overall ?? 78}%</strong></div>
-            <div><small>{locale === "ko" ? "저장 상태" : "保存状態"}</small><strong className={saved ? "saved" : "pending"}>{saved ? "SAVED" : "RETRY"}</strong></div>
+          <p>{saved ? t.completeBody : t.retryBody}</p>
+          <div className={`completion-status ${saved ? "saved" : "pending"}`} role="status">
+            <span>{saved ? "✓" : "!"}</span>
+            <strong>{saved ? t.completeStatus : t.retryStatus}</strong>
           </div>
-          <button className="primary-button" type="button">{t.more}<span>↗</span></button>
-          <button className="text-button" onClick={onRestart} type="button">{t.restart}</button>
+          <button className="primary-button" onClick={onRestart} type="button">{t.restart}<span>→</span></button>
         </div>
       </section>
     </main>
@@ -317,14 +315,6 @@ export function UserExperience() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
-
-  const profile = useMemo<MatchProfile>(() => ({
-    id: `draft-${instagram}`,
-    instagram: instagram.startsWith("@") ? instagram : `@${instagram}`,
-    locale,
-    answers,
-    importance,
-  }), [answers, importance, instagram, locale]);
 
   const start = () => {
     const clean = instagram.trim().replace(/^@/, "");
@@ -396,7 +386,7 @@ export function UserExperience() {
           submitting={submitting}
         />
       )}
-      {stage === "complete" && <CompleteScreen locale={locale} profile={profile} saved={saved} onRestart={() => { setAnswers({}); setImportance({}); setCurrentIndex(0); setStage("welcome"); }} />}
+      {stage === "complete" && <CompleteScreen locale={locale} saved={saved} onRestart={() => { setAnswers({}); setImportance({}); setCurrentIndex(0); setStage("welcome"); }} />}
     </div>
   );
 }

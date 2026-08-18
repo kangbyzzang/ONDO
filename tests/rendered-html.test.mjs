@@ -16,6 +16,13 @@ test("contains the ONDO questionnaire landing experience", async () => {
   assert.doesNotMatch(`${experience}${layout}${page}`, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
+test("shows an unambiguous survey completion state", async () => {
+  const experience = await readFile(new URL("../app/Experience.tsx", import.meta.url), "utf8");
+  assert.match(experience, /설문이 완료되었어요/);
+  assert.match(experience, /응답 저장 완료/);
+  assert.doesNotMatch(experience, /예상 상위 적합도|다음 5개 질문으로 정확도 높이기|displayCompletion/);
+});
+
 test("contains the admin compatibility dashboard", async () => {
   const [experience, adminPage] = await Promise.all([
     readFile(new URL("../app/Experience.tsx", import.meta.url), "utf8"),
