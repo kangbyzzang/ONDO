@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import Link from "next/link";
 import { demoProfiles } from "./data/demo-profiles";
 import {
   type AnswerValue,
@@ -19,6 +21,18 @@ import {
   profileSignals,
   tierLabels,
 } from "./lib/matching";
+import {
+  listSubmissionsForAdmin,
+  saveSubmission,
+  signInAdmin,
+  signOutAdmin,
+} from "./lib/firebase-submissions";
+import {
+  ADMIN_EMAIL,
+  firebaseAuth,
+  initializeAuthSession,
+  initializeFirebaseAnalytics,
+} from "./lib/firebase";
 
 type Stage = "welcome" | "questions" | "complete";
 
@@ -88,11 +102,11 @@ const importanceOptions = [
 
 function Logo() {
   return (
-    <a className="brand" href="/" aria-label="온도 홈">
+    <Link className="brand" href="/" aria-label="온도 홈">
       <span className="brand-mark"><i /><i /></span>
       <span>온도</span>
       <small>ONDO</small>
-    </a>
+    </Link>
   );
 }
 
@@ -152,7 +166,7 @@ function Landing({
           <span><b>↝</b>{t.adaptive}</span>
         </div>
 
-        <a className="admin-link" href="/admin">{t.admin}<span>→</span></a>
+        <Link className="admin-link" href="/admin">{t.admin}<span>→</span></Link>
       </section>
 
       <section className="hero-visual" aria-label="온도 적합도 분석 미리보기">
@@ -316,6 +330,10 @@ export function UserExperience() {
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  useEffect(() => {
+    void initializeFirebaseAnalytics();
+  }, []);
+
   const start = () => {
     const clean = instagram.trim().replace(/^@/, "");
     if (!/^[A-Za-z0-9._]{2,30}$/.test(clean)) {
@@ -329,14 +347,10 @@ export function UserExperience() {
 
   const finish = async () => {
     setSubmitting(true);
-    const completion = Math.round((Object.keys(answers).length / getQuestionFlow(answers).length) * 58);
+    const completion = Math.round((Object.keys(answers).length / getQuestionFlow(answers).length) * 100);
     try {
-      const response = await fetch("/api/submissions", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ instagram, locale, answers, importance, completion }),
-      });
-      setSaved(response.ok);
+      await saveSubmission({ instagram, locale, answers, importance, completion });
+      setSaved(true);
     } catch {
       setSaved(false);
     } finally {
@@ -404,20 +418,78 @@ export function AdminExperience() {
   const [profiles, setProfiles] = useState<MatchProfile[]>(demoProfiles);
   const [selectedId, setSelectedId] = useState(demoProfiles[0].id);
   const [query, setQuery] = useState("");
+  const [adminUser, setAdminUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [authBusy, setAuthBusy] = useState(false);
+  const [authError, setAuthError] = useState("");
 
   useEffect(() => {
     let active = true;
-    fetch("/api/submissions")
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((data: { submissions?: MatchProfile[] }) => {
-        if (!active || !data.submissions?.length) return;
-        const real = data.submissions.map((profile) => ({ ...profile, name: profile.instagram.replace(/^@/, "") }));
-        setProfiles([...real, ...demoProfiles]);
-        setSelectedId(real[0].id);
-      })
-      .catch(() => undefined);
-    return () => { active = false; };
+    let unsubscribe: () => void = () => undefined;
+
+    void initializeAuthSession().then(() => {
+      if (!active) return;
+      unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
+        if (!active) return;
+        const allowedUser = user?.email === ADMIN_EMAIL ? user : null;
+        setAdminUser(allowedUser);
+        setAuthReady(true);
+        if (!allowedUser) return;
+
+        void listSubmissionsForAdmin()
+          .then((real) => {
+            if (!active) return;
+            setProfiles(real.length ? [...real, ...demoProfiles] : demoProfiles);
+            setSelectedId(real[0]?.id ?? demoProfiles[0].id);
+          })
+          .catch((error: unknown) => {
+            if (!active) return;
+            setAuthError(error instanceof Error ? error.message : "응답을 불러오지 못했습니다.");
+          });
+      });
+    }).catch((error: unknown) => {
+      if (!active) return;
+      setAuthReady(true);
+      setAuthError(error instanceof Error ? error.message : "로그인 상태를 확인하지 못했습니다.");
+    });
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
   }, []);
+
+  const handleAdminSignIn = async () => {
+    setAuthBusy(true);
+    setAuthError("");
+    try {
+      setAdminUser(await signInAdmin());
+    } catch (error) {
+      setAuthError(error instanceof Error ? error.message : "관리자 로그인에 실패했습니다.");
+    } finally {
+      setAuthBusy(false);
+    }
+  };
+
+  if (!authReady || !adminUser) {
+    return (
+      <main className="admin-login-page">
+        <section className="admin-login-card">
+          <Logo />
+          <div className="admin-login-mark"><span>ON</span></div>
+          <small>PRIVATE ADMIN</small>
+          <h1>{authReady ? "관리자 로그인이 필요해요." : "로그인 상태를 확인하고 있어요."}</h1>
+          <p>설문 응답과 매칭 분석은 지정된 운영자 계정으로만 볼 수 있습니다.</p>
+          {authError && <p className="admin-login-error" role="alert">{authError}</p>}
+          <button className="primary-button" disabled={!authReady || authBusy} onClick={() => void handleAdminSignIn()} type="button">
+            {authBusy ? "로그인 중…" : "Google로 관리자 로그인"}<span>→</span>
+          </button>
+          <em>{ADMIN_EMAIL}</em>
+          <Link href="/">← 사용자 설문으로 돌아가기</Link>
+        </section>
+      </main>
+    );
+  }
 
   const filteredProfiles = profiles.filter((profile) => `${profile.name ?? ""} ${profile.instagram}`.toLowerCase().includes(query.toLowerCase()));
   const selected = profiles.find((profile) => profile.id === selectedId) ?? profiles[0];
@@ -442,14 +514,14 @@ export function AdminExperience() {
         <div className="admin-sidebar-foot">
           <small>ADMIN MODE</small>
           <strong>온도 운영팀</strong>
-          <a href="/">사용자 화면으로 →</a>
+          <Link href="/">사용자 화면으로 →</Link>
         </div>
       </aside>
 
       <main className="admin-main" id="dashboard">
         <header className="admin-header">
           <div><p>2026. 08. 18 · TUESDAY</p><h1>좋은 인연의 가능성을 살펴볼게요.</h1></div>
-          <div className="admin-avatar">ON</div>
+          <button className="admin-avatar" onClick={() => void signOutAdmin()} title="관리자 로그아웃" type="button">ON</button>
         </header>
 
         <section className="stat-grid">

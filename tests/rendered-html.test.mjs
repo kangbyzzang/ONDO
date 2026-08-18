@@ -24,15 +24,34 @@ test("shows an unambiguous survey completion state", async () => {
 });
 
 test("contains the admin compatibility dashboard", async () => {
-  const [experience, adminPage] = await Promise.all([
+  const [experience, adminPage, firebaseClient] = await Promise.all([
     readFile(new URL("../app/Experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/firebase.ts", import.meta.url), "utf8"),
   ]);
   assert.match(experience, /좋은 인연의 가능성/);
   assert.match(experience, /참여자/);
   assert.match(experience, /추천 후보/);
   assert.match(experience, /핵심 응답 요약/);
+  assert.match(experience, /Google로 관리자 로그인/);
+  assert.match(firebaseClient, /kangbyeongyeon05@gmail\.com/);
   assert.match(adminPage, /<AdminExperience \/>/);
+});
+
+test("stores survey answers in protected Firebase documents", async () => {
+  const [firebaseClient, submissions, rules, packageJson] = await Promise.all([
+    readFile(new URL("../app/lib/firebase.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/firebase-submissions.ts", import.meta.url), "utf8"),
+    readFile(new URL("../firestore.rules", import.meta.url), "utf8"),
+    readFile(new URL("../package.json", import.meta.url), "utf8"),
+  ]);
+  assert.match(firebaseClient, /data-platform-b4587/);
+  assert.match(submissions, /signInAnonymously/);
+  assert.match(submissions, /setDoc/);
+  assert.match(rules, /request\.auth\.uid == userId/);
+  assert.match(rules, /kangbyeongyeon05@gmail\.com/);
+  assert.match(packageJson, /"firebase"/);
+  assert.doesNotMatch(`${firebaseClient}${submissions}${packageJson}`, /cloudflare:workers|drizzle-orm|vinext/);
 });
 
 test("ships the bespoke social card and removes the starter preview", async () => {
