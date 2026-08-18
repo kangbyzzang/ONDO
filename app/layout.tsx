@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { headers } from "next/headers";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -13,31 +12,17 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
-export async function generateMetadata(): Promise<Metadata> {
-  const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "localhost";
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
-  const origin = `${protocol}://${host}`;
-  const title = "온도 ONDO — 한일 진지한 관계 매칭";
-  const description = "관계 목적, 가치관, 생활 방식과 한일 국제연애 현실을 함께 보는 적응형 궁합 진단.";
+const title = "온도 ONDO — 한일 진지한 관계 매칭";
+const description = "관계 목적, 가치관, 생활 방식과 한일 국제연애 현실을 함께 보는 적응형 궁합 진단.";
+const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
 
-  return {
-    title,
-    description,
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      images: [{ url: `${origin}/og.png`, width: 1765, height: 909, alt: "온도 한일 진지한 관계 매칭" }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [`${origin}/og.png`],
-    },
-  };
-}
+export const metadata: Metadata = {
+  metadataBase: new URL(deploymentHost ? `https://${deploymentHost}` : "http://localhost:3000"),
+  title,
+  description,
+  openGraph: { title, description, type: "website" },
+  twitter: { card: "summary_large_image", title, description },
+};
 
 export default function RootLayout({
   children,

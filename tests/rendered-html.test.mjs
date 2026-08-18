@@ -55,8 +55,8 @@ test("stores survey answers in protected Firebase documents", async () => {
 });
 
 test("ships the bespoke social card and removes the starter preview", async () => {
-  const layout = await readFile(new URL("../app/layout.tsx", import.meta.url), "utf8");
-  assert.match(layout, /\/og\.png/);
-  await access(new URL("../public/og.png", import.meta.url));
+  const socialCard = await readFile(new URL("../app/opengraph-image.tsx", import.meta.url), "utf8");
+  assert.match(socialCard, /ImageResponse/);
+  assert.match(socialCard, /KOREA × JAPAN, SERIOUSLY/);
   await assert.rejects(access(new URL("../app\/_sites-preview\/SkeletonPreview.tsx", import.meta.url)));
 });
