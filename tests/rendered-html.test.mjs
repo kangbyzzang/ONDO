@@ -39,10 +39,11 @@ test("contains the admin compatibility dashboard", async () => {
 });
 
 test("stores survey answers in protected Firebase documents", async () => {
-  const [firebaseClient, submissions, rules, packageJson] = await Promise.all([
+  const [firebaseClient, submissions, rules, firebaseConfig, packageJson] = await Promise.all([
     readFile(new URL("../app/lib/firebase.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/firebase-submissions.ts", import.meta.url), "utf8"),
     readFile(new URL("../firestore.rules", import.meta.url), "utf8"),
+    readFile(new URL("../firebase.json", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
   assert.match(firebaseClient, /data-platform-b4587/);
@@ -50,6 +51,8 @@ test("stores survey answers in protected Firebase documents", async () => {
   assert.match(submissions, /setDoc/);
   assert.match(rules, /request\.auth\.uid == userId/);
   assert.match(rules, /kangbyeongyeon05@gmail\.com/);
+  assert.match(firebaseConfig, /"anonymous": true/);
+  assert.match(firebaseConfig, /"googleSignIn"/);
   assert.match(packageJson, /"firebase"/);
   assert.doesNotMatch(`${firebaseClient}${submissions}${packageJson}`, /cloudflare:workers|drizzle-orm|vinext/);
 });

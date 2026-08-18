@@ -5,7 +5,7 @@ Next.js와 Firebase Authentication/Firestore를 사용하며 Vercel 배포를 �
 
 ## Prerequisites
 
-- Node.js `>=22.13.0`
+- Node.js `24.x`
 
 ## 로컬 실행
 
@@ -22,13 +22,13 @@ Firebase 프로젝트 `data-platform-b4587`에서 다음 항목을 활성화해�
 - Firestore Database
 - Authentication > Sign-in method > Anonymous
 - Authentication > Sign-in method > Google
-- Authentication > Settings > Authorized domains에 배포된 Vercel 도메인
+- Authentication > Settings > Authorized domains에 `ondo-korea-japan-theta.vercel.app`
 
 보안 규칙은 `firestore.rules`에 있습니다. 배포 전 Firebase CLI로 로그인한 뒤 실행합니다.
 
 ```bash
 npx firebase-tools login
-npx firebase-tools deploy --only firestore
+npx firebase-tools deploy --only firestore,auth
 ```
 
 ## 관리자
