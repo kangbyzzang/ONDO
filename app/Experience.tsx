@@ -1,0 +1,555 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { demoProfiles } from "./data/demo-profiles";
+import {
+  type AnswerValue,
+  type Answers,
+  type Locale,
+  answerLabel,
+  getQuestionFlow,
+  moduleLabels,
+  questionMap,
+} from "./data/questions";
+import {
+  type MatchProfile,
+  calculateMatch,
+  confidenceLabels,
+  profileCompletion,
+  profileSignals,
+  tierLabels,
+} from "./lib/matching";
+
+type Stage = "welcome" | "questions" | "complete";
+
+const copy = {
+  ko: {
+    eyebrow: "KOREA × JAPAN, SERIOUSLY",
+    headlineA: "잘 맞는 사람은,",
+    headlineB: "대화 전에도 보이는 게 있어요.",
+    body: "당신이 원하는 관계와 생활의 온도를 차분히 알아보고, 서로에게 좋은 사람이 될 가능성을 섬세하게 분석해요.",
+    instagram: "먼저 인스타그램 아이디를 알려주세요",
+    placeholder: "your.instagram",
+    start: "나의 관계 온도 알아보기",
+    privacy: "아이디는 운영팀 확인용이며 공개 프로필에 바로 노출되지 않아요.",
+    minutes: "약 6분",
+    questions: "25–32문항",
+    adaptive: "맞춤형 질문",
+    admin: "관리자 분석 화면 보기",
+    next: "다음 질문",
+    back: "이전",
+    skip: "답변하지 않기",
+    importance: "이 조건은 얼마나 중요한가요?",
+    importanceHint: "절대 조건으로 선택하면 맞지 않는 상대는 추천에서 제외돼요.",
+    save: "프로필 저장하기",
+    saving: "분석하고 있어요…",
+    completeTitle: "관계의 온도를 찾았어요.",
+    completeBody: "첫 진단이 완료됐어요. 답변을 더할수록 추천과 적합도 분석이 더 정교해져요.",
+    more: "다음 5개 질문으로 정확도 높이기",
+    restart: "처음부터 다시",
+  },
+  ja: {
+    eyebrow: "KOREA × JAPAN, SERIOUSLY",
+    headlineA: "相性の良さは、",
+    headlineB: "話す前から見えることがあります。",
+    body: "あなたが望む関係と暮らしの温度を知り、お互いに良いパートナーになれる可能性を丁寧に分析します。",
+    instagram: "まずInstagramのIDを教えてください",
+    placeholder: "your.instagram",
+    start: "私の関係温度を知る",
+    privacy: "IDは運営チームの確認用で、公開プロフィールにはすぐ表示されません。",
+    minutes: "約6分",
+    questions: "25〜32問",
+    adaptive: "適応型質問",
+    admin: "管理者分析画面を見る",
+    next: "次の質問",
+    back: "戻る",
+    skip: "回答しない",
+    importance: "この条件はどのくらい重要ですか？",
+    importanceHint: "絶対条件にすると、合わない相手は推薦から除外されます。",
+    save: "プロフィールを保存",
+    saving: "分析しています…",
+    completeTitle: "あなたの関係温度が分かりました。",
+    completeBody: "最初の診断が完了しました。回答を増やすほど、相性分析の精度が上がります。",
+    more: "あと5問で精度を上げる",
+    restart: "最初からやり直す",
+  },
+};
+
+const importanceOptions = [
+  { value: 1, ko: "별로 중요하지 않음", ja: "あまり重要ではない" },
+  { value: 2, ko: "어느 정도 중요", ja: "ある程度重要" },
+  { value: 3, ko: "매우 중요", ja: "とても重要" },
+  { value: 4, ko: "절대 조건", ja: "絶対条件" },
+];
+
+function Logo() {
+  return (
+    <a className="brand" href="/" aria-label="온도 홈">
+      <span className="brand-mark"><i /><i /></span>
+      <span>온도</span>
+      <small>ONDO</small>
+    </a>
+  );
+}
+
+function LanguageToggle({ locale, onChange }: { locale: Locale; onChange: (locale: Locale) => void }) {
+  return (
+    <div className="language-toggle" aria-label="언어 선택">
+      <button className={locale === "ko" ? "active" : ""} onClick={() => onChange("ko")} type="button">KO</button>
+      <button className={locale === "ja" ? "active" : ""} onClick={() => onChange("ja")} type="button">JA</button>
+    </div>
+  );
+}
+
+function Landing({
+  locale,
+  instagram,
+  error,
+  onInstagram,
+  onStart,
+}: {
+  locale: Locale;
+  instagram: string;
+  error: string;
+  onInstagram: (value: string) => void;
+  onStart: () => void;
+}) {
+  const t = copy[locale];
+  return (
+    <main className="landing page-shell">
+      <section className="hero-copy">
+        <div className="eyebrow"><span>●</span>{t.eyebrow}</div>
+        <h1>{t.headlineA}<br /><em>{t.headlineB}</em></h1>
+        <p className="hero-body">{t.body}</p>
+
+        <form className="instagram-card" onSubmit={(event) => { event.preventDefault(); onStart(); }}>
+          <label htmlFor="instagram">{t.instagram}</label>
+          <div className={`instagram-input ${error ? "invalid" : ""}`}>
+            <span>@</span>
+            <input
+              id="instagram"
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              value={instagram.replace(/^@/, "")}
+              onChange={(event) => onInstagram(event.target.value)}
+              placeholder={t.placeholder}
+              aria-describedby="instagram-note"
+            />
+          </div>
+          {error && <p className="form-error" role="alert">{error}</p>}
+          <button className="primary-button" type="submit">{t.start}<span>↗</span></button>
+          <p id="instagram-note" className="privacy-note"><span>⌁</span>{t.privacy}</p>
+        </form>
+
+        <div className="quick-facts" aria-label="설문 정보">
+          <span><b>06</b>{t.minutes}</span>
+          <span><b>32</b>{t.questions}</span>
+          <span><b>↝</b>{t.adaptive}</span>
+        </div>
+
+        <a className="admin-link" href="/admin">{t.admin}<span>→</span></a>
+      </section>
+
+      <section className="hero-visual" aria-label="온도 적합도 분석 미리보기">
+        <div className="sun-orbit"><span>82<small>%</small></span><em>MATCH</em></div>
+        <div className="mini-card mini-card-a">
+          <div className="mini-avatar coral">서</div>
+          <div><strong>서연 × 하루토</strong><small>높은 궁합 · 신뢰도 높음</small></div>
+          <b>87%</b>
+        </div>
+        <div className="mini-card mini-card-b">
+          <span className="spark">✦</span>
+          <div><small>잘 맞는 부분</small><strong>대화의 리듬</strong></div>
+          <div className="micro-bars"><i /><i /><i /></div>
+        </div>
+        <p className="hand-note">different languages,<br />same temperature <span>↗</span></p>
+        <div className="floating-chip chip-one">서울 <span>↔</span> 東京</div>
+        <div className="floating-chip chip-two">SERIOUS ONLY</div>
+      </section>
+    </main>
+  );
+}
+
+function QuestionScreen({
+  locale,
+  answers,
+  importance,
+  currentIndex,
+  onAnswer,
+  onImportance,
+  onBack,
+  onNext,
+  onSkip,
+  submitting,
+}: {
+  locale: Locale;
+  answers: Answers;
+  importance: Record<string, number>;
+  currentIndex: number;
+  onAnswer: (id: string, value: AnswerValue) => void;
+  onImportance: (id: string, value: number) => void;
+  onBack: () => void;
+  onNext: () => void;
+  onSkip: () => void;
+  submitting: boolean;
+}) {
+  const flow = getQuestionFlow(answers);
+  const safeIndex = Math.min(currentIndex, flow.length - 1);
+  const question = flow[safeIndex];
+  const value = answers[question.id];
+  const progress = Math.round(((safeIndex + 1) / flow.length) * 100);
+  const t = copy[locale];
+  const isLast = safeIndex === flow.length - 1;
+
+  return (
+    <main className="question-page">
+      <div className="question-shell">
+        <div className="question-topline">
+          <button className="icon-button" onClick={onBack} type="button" aria-label={t.back}>←</button>
+          <div className="progress-meta"><strong>{String(safeIndex + 1).padStart(2, "0")}</strong><span>/ {flow.length}</span></div>
+          <span className="module-chip">{moduleLabels[question.module][locale]}</span>
+        </div>
+        <div className="progress-track"><i style={{ width: `${progress}%` }} /></div>
+
+        <section className="question-card">
+          <div className="question-number">Q{String(safeIndex + 1).padStart(2, "0")}</div>
+          <h1>{question[locale]}</h1>
+          {question.sensitive && <p className="sensitive-note">⌁ {locale === "ko" ? "이 답변은 알고리즘에만 사용되며 상대에게 공개되지 않아요." : "この回答はアルゴリズムにのみ使用され、相手には公開されません。"}</p>}
+
+          {question.type === "single" ? (
+            <div className="option-list">
+              {question.options?.map((option, index) => (
+                <button
+                  className={`option-button ${value === option.value ? "selected" : ""}`}
+                  key={option.value}
+                  type="button"
+                  onClick={() => onAnswer(question.id, option.value)}
+                >
+                  <span className="option-index">{String.fromCharCode(65 + index)}</span>
+                  <span>{option[locale]}</span>
+                  <i>{value === option.value ? "✓" : ""}</i>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div className="scale-wrap">
+              <div className="scale-labels"><span>{question.left?.[locale]}</span><span>{question.right?.[locale]}</span></div>
+              <div className={`scale-grid ${question.type === "scale5" ? "five" : ""}`}>
+                {Array.from({ length: question.type === "scale5" ? 5 : 10 }, (_, index) => index + 1).map((number) => (
+                  <button
+                    className={value === number ? "selected" : ""}
+                    key={number}
+                    type="button"
+                    onClick={() => onAnswer(question.id, number)}
+                    aria-label={`${number}점`}
+                  >{number}</button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {question.dealbreaker && value !== undefined && (
+            <div className="importance-box">
+              <div><strong>{t.importance}</strong><p>{t.importanceHint}</p></div>
+              <div className="importance-options">
+                {importanceOptions.map((option) => (
+                  <button
+                    className={importance[question.id] === option.value ? "selected" : ""}
+                    key={option.value}
+                    onClick={() => onImportance(question.id, option.value)}
+                    type="button"
+                  ><span>{option.value}</span>{option[locale]}</button>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+
+        <div className="question-actions">
+          {question.sensitive ? <button className="skip-button" onClick={onSkip} type="button">{t.skip}</button> : <span />}
+          <button className="primary-button compact" disabled={value === undefined || submitting} onClick={onNext} type="button">
+            {submitting ? t.saving : isLast ? t.save : t.next}<span>→</span>
+          </button>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function CompleteScreen({ locale, profile, saved, onRestart }: { locale: Locale; profile: MatchProfile; saved: boolean; onRestart: () => void }) {
+  const t = copy[locale];
+  const completion = profileCompletion(profile);
+  const top = demoProfiles
+    .map((candidate) => calculateMatch(profile, candidate))
+    .filter((result) => result.eligible)
+    .sort((a, b) => b.overall - a.overall)[0];
+  const displayCompletion = Math.min(62, Math.max(48, completion));
+
+  return (
+    <main className="complete-page">
+      <section className="complete-card">
+        <div className="completion-orbit"><span>{displayCompletion}<small>%</small></span><em>PROFILE</em></div>
+        <div className="complete-copy">
+          <div className="eyebrow"><span>●</span>INITIAL PROFILE COMPLETE</div>
+          <h1>{t.completeTitle}</h1>
+          <p>{t.completeBody}</p>
+          <div className="result-strip">
+            <div><small>{locale === "ko" ? "프로필 정확도" : "プロフィール精度"}</small><strong>{displayCompletion}%</strong></div>
+            <div><small>{locale === "ko" ? "예상 상위 적합도" : "予想上位相性"}</small><strong>{top?.overall ?? 78}%</strong></div>
+            <div><small>{locale === "ko" ? "저장 상태" : "保存状態"}</small><strong className={saved ? "saved" : "pending"}>{saved ? "SAVED" : "RETRY"}</strong></div>
+          </div>
+          <button className="primary-button" type="button">{t.more}<span>↗</span></button>
+          <button className="text-button" onClick={onRestart} type="button">{t.restart}</button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+export function UserExperience() {
+  const [locale, setLocale] = useState<Locale>("ko");
+  const [stage, setStage] = useState<Stage>("welcome");
+  const [instagram, setInstagram] = useState("");
+  const [error, setError] = useState("");
+  const [answers, setAnswers] = useState<Answers>({});
+  const [importance, setImportance] = useState<Record<string, number>>({});
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const profile = useMemo<MatchProfile>(() => ({
+    id: `draft-${instagram}`,
+    instagram: instagram.startsWith("@") ? instagram : `@${instagram}`,
+    locale,
+    answers,
+    importance,
+  }), [answers, importance, instagram, locale]);
+
+  const start = () => {
+    const clean = instagram.trim().replace(/^@/, "");
+    if (!/^[A-Za-z0-9._]{2,30}$/.test(clean)) {
+      setError(locale === "ko" ? "인스타그램 아이디를 확인해주세요." : "Instagram IDを確認してください。");
+      return;
+    }
+    setInstagram(`@${clean}`);
+    setError("");
+    setStage("questions");
+  };
+
+  const finish = async () => {
+    setSubmitting(true);
+    const completion = Math.round((Object.keys(answers).length / getQuestionFlow(answers).length) * 58);
+    try {
+      const response = await fetch("/api/submissions", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ instagram, locale, answers, importance, completion }),
+      });
+      setSaved(response.ok);
+    } catch {
+      setSaved(false);
+    } finally {
+      setSubmitting(false);
+      setStage("complete");
+    }
+  };
+
+  const next = () => {
+    const flow = getQuestionFlow(answers);
+    if (currentIndex >= flow.length - 1) {
+      void finish();
+      return;
+    }
+    setCurrentIndex((index) => index + 1);
+  };
+
+  const skip = () => {
+    const flow = getQuestionFlow(answers);
+    const question = flow[Math.min(currentIndex, flow.length - 1)];
+    setAnswers((current) => {
+      const nextAnswers = { ...current };
+      delete nextAnswers[question.id];
+      return nextAnswers;
+    });
+    next();
+  };
+
+  return (
+    <div className="site-frame">
+      <header className="site-header">
+        <Logo />
+        <LanguageToggle locale={locale} onChange={setLocale} />
+      </header>
+      {stage === "welcome" && <Landing locale={locale} instagram={instagram} error={error} onInstagram={(value) => { setInstagram(value); setError(""); }} onStart={start} />}
+      {stage === "questions" && (
+        <QuestionScreen
+          locale={locale}
+          answers={answers}
+          importance={importance}
+          currentIndex={currentIndex}
+          onAnswer={(id, value) => setAnswers((current) => ({ ...current, [id]: value }))}
+          onImportance={(id, value) => setImportance((current) => ({ ...current, [id]: value }))}
+          onBack={() => currentIndex === 0 ? setStage("welcome") : setCurrentIndex((index) => index - 1)}
+          onNext={next}
+          onSkip={skip}
+          submitting={submitting}
+        />
+      )}
+      {stage === "complete" && <CompleteScreen locale={locale} profile={profile} saved={saved} onRestart={() => { setAnswers({}); setImportance({}); setCurrentIndex(0); setStage("welcome"); }} />}
+    </div>
+  );
+}
+
+function countryLabel(value: unknown) {
+  return value === "KOREA" ? "한국" : value === "JAPAN" ? "일본" : "기타";
+}
+
+function intentLabel(value: unknown) {
+  const labels: Record<string, string> = { MARRIAGE: "결혼 전제", LONG_TERM: "장기 연애", SERIOUS_OPEN: "진지한 만남", SHORT_TERM: "단기 연애", CASUAL: "가벼운 만남", UNSURE: "탐색 중" };
+  return labels[String(value)] ?? "탐색 중";
+}
+
+export function AdminExperience() {
+  const [profiles, setProfiles] = useState<MatchProfile[]>(demoProfiles);
+  const [selectedId, setSelectedId] = useState(demoProfiles[0].id);
+  const [query, setQuery] = useState("");
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/submissions")
+      .then((response) => response.ok ? response.json() : Promise.reject())
+      .then((data: { submissions?: MatchProfile[] }) => {
+        if (!active || !data.submissions?.length) return;
+        const real = data.submissions.map((profile) => ({ ...profile, name: profile.instagram.replace(/^@/, "") }));
+        setProfiles([...real, ...demoProfiles]);
+        setSelectedId(real[0].id);
+      })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+
+  const filteredProfiles = profiles.filter((profile) => `${profile.name ?? ""} ${profile.instagram}`.toLowerCase().includes(query.toLowerCase()));
+  const selected = profiles.find((profile) => profile.id === selectedId) ?? profiles[0];
+  const candidates = profiles
+    .filter((profile) => profile.id !== selected.id)
+    .map((profile) => ({ profile, result: calculateMatch(selected, profile) }))
+    .sort((left, right) => Number(right.result.eligible) - Number(left.result.eligible) || right.result.overall - left.result.overall);
+  const topMatch = candidates.find((candidate) => candidate.result.eligible) ?? candidates[0];
+  const completionAverage = Math.round(profiles.reduce((sum, profile) => sum + profileCompletion(profile), 0) / profiles.length);
+  const absoluteCount = Object.values(selected.importance ?? {}).filter((value) => value === 4).length;
+
+  return (
+    <div className="admin-app">
+      <aside className="admin-sidebar">
+        <Logo />
+        <nav>
+          <a className="active" href="#dashboard"><span>⌂</span>대시보드</a>
+          <a href="#people"><span>◎</span>참여자</a>
+          <a href="#matches"><span>↔</span>매칭 분석</a>
+          <a href="#questions"><span>?</span>질문 관리</a>
+        </nav>
+        <div className="admin-sidebar-foot">
+          <small>ADMIN MODE</small>
+          <strong>온도 운영팀</strong>
+          <a href="/">사용자 화면으로 →</a>
+        </div>
+      </aside>
+
+      <main className="admin-main" id="dashboard">
+        <header className="admin-header">
+          <div><p>2026. 08. 18 · TUESDAY</p><h1>좋은 인연의 가능성을 살펴볼게요.</h1></div>
+          <div className="admin-avatar">ON</div>
+        </header>
+
+        <section className="stat-grid">
+          <article className="stat-card warm"><span>전체 참여자</span><strong>{profiles.length}<small>명</small></strong><em>+{Math.max(1, profiles.length - demoProfiles.length)} 실제 응답</em></article>
+          <article className="stat-card mint"><span>평균 프로필 완성도</span><strong>{completionAverage}<small>%</small></strong><em>권장 기준 50% 이상</em></article>
+          <article className="stat-card ink"><span>활성 매칭 후보</span><strong>{candidates.filter((item) => item.result.eligible).length}<small>쌍</small></strong><em>절대 조건 검증 완료</em></article>
+        </section>
+
+        <div className="admin-grid">
+          <section className="people-panel" id="people">
+            <div className="panel-title"><div><small>PARTICIPANTS</small><h2>참여자</h2></div><span>{filteredProfiles.length}</span></div>
+            <label className="search-box"><span>⌕</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="아이디 검색" /></label>
+            <div className="people-list">
+              {filteredProfiles.map((profile) => {
+                const active = profile.id === selected.id;
+                return (
+                  <button className={`person-row ${active ? "active" : ""}`} key={profile.id} onClick={() => setSelectedId(profile.id)} type="button">
+                    <span className="person-avatar">{(profile.name ?? profile.instagram.replace("@", "")).slice(0, 1).toUpperCase()}</span>
+                    <span><strong>{profile.name ?? profile.instagram}</strong><small>{profile.instagram}</small></span>
+                    <span className="person-meta"><b>{profileCompletion(profile)}%</b><small>{countryLabel(profile.answers.CB001)}</small></span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+
+          <section className="profile-panel">
+            <div className="profile-heading">
+              <div className="profile-avatar">{(selected.name ?? selected.instagram).slice(0, 1)}</div>
+              <div><small>SELECTED PROFILE</small><h2>{selected.name ?? selected.instagram.replace("@", "")}</h2><p>{selected.instagram} · {countryLabel(selected.answers.CB001)}</p></div>
+              <span className="intent-badge">{intentLabel(selected.answers.R001)}</span>
+            </div>
+
+            <div className="profile-progress"><span><b>프로필 정밀도</b><em>{profileCompletion(selected)}%</em></span><i><b style={{ width: `${profileCompletion(selected)}%` }} /></i><small>공통 핵심 응답 {Object.keys(selected.answers).length}개</small></div>
+
+            <div className="signal-grid">
+              {profileSignals(selected).map((signal) => (
+                <article key={signal.label}><div className="signal-ring" style={{ "--value": `${signal.value * 3.6}deg` } as React.CSSProperties}><span>{signal.value}</span></div><div><strong>{signal.label}</strong><small>{signal.note}</small></div></article>
+              ))}
+            </div>
+
+            <div className="condition-box">
+              <div><span>!</span><div><strong>절대 조건 {absoluteCount}개 설정</strong><small>관계 목적·자녀·흡연·장거리 조건을 우선 검증해요.</small></div></div>
+              <button type="button">조건 보기</button>
+            </div>
+
+            <section className="answer-section" id="questions">
+              <div className="section-heading"><div><small>CORE ANSWERS</small><h3>핵심 응답 요약</h3></div><button type="button">전체 보기 →</button></div>
+              <div className="answer-grid">
+                {["R001", "R002", "CB002", "CH001", "CM002", "CB005"].map((id) => {
+                  const question = questionMap.get(id);
+                  const value = selected.answers[id];
+                  if (!question || value === undefined) return null;
+                  return <div key={id}><small>{question.ko}</small><strong>{answerLabel(question, value, "ko")}</strong><span className={question.sensitive ? "private" : "match"}>{question.sensitive ? "PRIVATE" : "MATCH ONLY"}</span></div>;
+                })}
+              </div>
+            </section>
+          </section>
+
+          <section className="match-panel" id="matches">
+            <div className="panel-title"><div><small>COMPATIBILITY</small><h2>추천 후보</h2></div><span>LIVE</span></div>
+            <div className="candidate-list">
+              {candidates.slice(0, 3).map(({ profile, result }, index) => (
+                <article className={!result.eligible ? "excluded" : ""} key={profile.id}>
+                  <div className="candidate-rank">0{index + 1}</div>
+                  <div className="candidate-avatar">{(profile.name ?? profile.instagram).slice(0, 1)}</div>
+                  <div className="candidate-copy"><strong>{profile.name ?? profile.instagram.replace("@", "")}</strong><small>{countryLabel(profile.answers.CB001)} · {tierLabels[result.tier]}</small></div>
+                  <div className="candidate-score"><strong>{result.overall}<small>%</small></strong><span>{result.eligible ? confidenceLabels[result.confidence] : "제외"}</span></div>
+                </article>
+              ))}
+            </div>
+
+            {topMatch && (
+              <div className="match-detail">
+                <div className="section-heading"><div><small>TOP MATCH DETAIL</small><h3>{topMatch.profile.name ?? topMatch.profile.instagram}와의 분석</h3></div><b>{topMatch.result.overall}%</b></div>
+                <div className="module-bars">
+                  {topMatch.result.modules.slice(0, 6).map((module) => (
+                    <div key={module.module}><span>{moduleLabels[module.module].ko}</span><i><b style={{ width: `${module.score}%` }} /></i><em>{module.score}</em></div>
+                  ))}
+                </div>
+                <div className="explanation-grid">
+                  <div className="good"><strong>✦ 잘 맞는 부분</strong>{topMatch.result.strengths.slice(0, 2).map((text) => <p key={text}>{text}</p>)}</div>
+                  <div className="watch"><strong>↗ 확인하면 좋은 부분</strong>{(topMatch.result.conflicts.length ? topMatch.result.conflicts : topMatch.result.cautions).slice(0, 2).map((text) => <p key={text}>{text}</p>)}</div>
+                </div>
+                <p className="confidence-line">공통 답변 {topMatch.result.sharedAnswers}개 기준 · 신뢰도 {confidenceLabels[topMatch.result.confidence]}</p>
+              </div>
+            )}
+          </section>
+        </div>
+      </main>
+    </div>
+  );
+}
