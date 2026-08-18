@@ -35,6 +35,8 @@ import {
 } from "./lib/firebase";
 
 type Stage = "welcome" | "questions" | "complete";
+type Gender = "WOMAN" | "MAN" | "NON_BINARY";
+type GenderPreference = "WOMAN" | "MAN" | "ANY";
 
 const copy = {
   ko: {
@@ -43,6 +45,9 @@ const copy = {
     headlineB: "대화 전에도 보이는 게 있어요.",
     body: "당신이 원하는 관계와 생활의 온도를 차분히 알아보고, 서로에게 좋은 사람이 될 가능성을 섬세하게 분석해요.",
     instagram: "먼저 인스타그램 아이디를 알려주세요",
+    gender: "나의 성별",
+    preferredGender: "만나고 싶은 상대",
+    genderRequired: "성별과 만나고 싶은 상대를 선택해주세요.",
     placeholder: "your.instagram",
     start: "나의 관계 온도 알아보기",
     privacy: "아이디는 운영팀 확인용이며 공개 프로필에 바로 노출되지 않아요.",
@@ -70,6 +75,9 @@ const copy = {
     headlineB: "話す前から見えることがあります。",
     body: "あなたが望む関係と暮らしの温度を知り、お互いに良いパートナーになれる可能性を丁寧に分析します。",
     instagram: "まずInstagramのIDを教えてください",
+    gender: "私の性別",
+    preferredGender: "出会いたい相手",
+    genderRequired: "性別と出会いたい相手を選択してください。",
     placeholder: "your.instagram",
     start: "私の関係温度を知る",
     privacy: "IDは運営チームの確認用で、公開プロフィールにはすぐ表示されません。",
@@ -100,6 +108,18 @@ const importanceOptions = [
   { value: 4, ko: "절대 조건", ja: "絶対条件" },
 ];
 
+const genderOptions: { value: Gender; ko: string; ja: string }[] = [
+  { value: "WOMAN", ko: "여성", ja: "女性" },
+  { value: "MAN", ko: "남성", ja: "男性" },
+  { value: "NON_BINARY", ko: "기타", ja: "その他" },
+];
+
+const preferenceOptions: { value: GenderPreference; ko: string; ja: string }[] = [
+  { value: "WOMAN", ko: "여성", ja: "女性" },
+  { value: "MAN", ko: "남성", ja: "男性" },
+  { value: "ANY", ko: "성별 무관", ja: "性別不問" },
+];
+
 function Logo() {
   return (
     <Link className="brand" href="/" aria-label="온도 홈">
@@ -122,14 +142,22 @@ function LanguageToggle({ locale, onChange }: { locale: Locale; onChange: (local
 function Landing({
   locale,
   instagram,
+  gender,
+  preferredGender,
   error,
   onInstagram,
+  onGender,
+  onPreferredGender,
   onStart,
 }: {
   locale: Locale;
   instagram: string;
+  gender: Gender | "";
+  preferredGender: GenderPreference | "";
   error: string;
   onInstagram: (value: string) => void;
+  onGender: (value: Gender) => void;
+  onPreferredGender: (value: GenderPreference) => void;
   onStart: () => void;
 }) {
   const t = copy[locale];
@@ -155,35 +183,34 @@ function Landing({
               aria-describedby="instagram-note"
             />
           </div>
+          <div className="identity-fields">
+            <fieldset>
+              <legend>{t.gender}</legend>
+              <div className="identity-options">
+                {genderOptions.map((option) => (
+                  <button className={gender === option.value ? "selected" : ""} key={option.value} onClick={() => onGender(option.value)} type="button">
+                    {option[locale]}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>{t.preferredGender}</legend>
+              <div className="identity-options">
+                {preferenceOptions.map((option) => (
+                  <button className={preferredGender === option.value ? "selected" : ""} key={option.value} onClick={() => onPreferredGender(option.value)} type="button">
+                    {option[locale]}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </div>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="primary-button" type="submit">{t.start}<span>↗</span></button>
           <p id="instagram-note" className="privacy-note"><span>⌁</span>{t.privacy}</p>
         </form>
 
-        <div className="quick-facts" aria-label="설문 정보">
-          <span><b>06</b>{t.minutes}</span>
-          <span><b>32</b>{t.questions}</span>
-          <span><b>↝</b>{t.adaptive}</span>
-        </div>
-
         <Link className="admin-link" href="/admin">{t.admin}<span>→</span></Link>
-      </section>
-
-      <section className="hero-visual" aria-label="온도 적합도 분석 미리보기">
-        <div className="sun-orbit"><span>82<small>%</small></span><em>MATCH</em></div>
-        <div className="mini-card mini-card-a">
-          <div className="mini-avatar coral">서</div>
-          <div><strong>서연 × 하루토</strong><small>높은 궁합 · 신뢰도 높음</small></div>
-          <b>87%</b>
-        </div>
-        <div className="mini-card mini-card-b">
-          <span className="spark">✦</span>
-          <div><small>잘 맞는 부분</small><strong>대화의 리듬</strong></div>
-          <div className="micro-bars"><i /><i /><i /></div>
-        </div>
-        <p className="hand-note">different languages,<br />same temperature <span>↗</span></p>
-        <div className="floating-chip chip-one">서울 <span>↔</span> 東京</div>
-        <div className="floating-chip chip-two">SERIOUS ONLY</div>
       </section>
     </main>
   );
@@ -323,6 +350,8 @@ export function UserExperience() {
   const [locale, setLocale] = useState<Locale>("ko");
   const [stage, setStage] = useState<Stage>("welcome");
   const [instagram, setInstagram] = useState("");
+  const [gender, setGender] = useState<Gender | "">("");
+  const [preferredGender, setPreferredGender] = useState<GenderPreference | "">("");
   const [error, setError] = useState("");
   const [answers, setAnswers] = useState<Answers>({});
   const [importance, setImportance] = useState<Record<string, number>>({});
@@ -340,14 +369,21 @@ export function UserExperience() {
       setError(locale === "ko" ? "인스타그램 아이디를 확인해주세요." : "Instagram IDを確認してください。");
       return;
     }
+    if (!gender || !preferredGender) {
+      setError(copy[locale].genderRequired);
+      return;
+    }
     setInstagram(`@${clean}`);
+    setAnswers((current) => ({ ...current, BIO001: gender, BIO002: preferredGender }));
     setError("");
     setStage("questions");
   };
 
   const finish = async () => {
     setSubmitting(true);
-    const completion = Math.round((Object.keys(answers).length / getQuestionFlow(answers).length) * 100);
+    const flow = getQuestionFlow(answers);
+    const answered = flow.filter((question) => answers[question.id] !== undefined).length;
+    const completion = Math.round((answered / flow.length) * 100);
     try {
       await saveSubmission({ instagram, locale, answers, importance, completion });
       setSaved(true);
@@ -385,7 +421,19 @@ export function UserExperience() {
         <Logo />
         <LanguageToggle locale={locale} onChange={setLocale} />
       </header>
-      {stage === "welcome" && <Landing locale={locale} instagram={instagram} error={error} onInstagram={(value) => { setInstagram(value); setError(""); }} onStart={start} />}
+      {stage === "welcome" && (
+        <Landing
+          locale={locale}
+          instagram={instagram}
+          gender={gender}
+          preferredGender={preferredGender}
+          error={error}
+          onInstagram={(value) => { setInstagram(value); setError(""); }}
+          onGender={(value) => { setGender(value); setError(""); }}
+          onPreferredGender={(value) => { setPreferredGender(value); setError(""); }}
+          onStart={start}
+        />
+      )}
       {stage === "questions" && (
         <QuestionScreen
           locale={locale}
@@ -412,6 +460,11 @@ function countryLabel(value: unknown) {
 function intentLabel(value: unknown) {
   const labels: Record<string, string> = { MARRIAGE: "결혼 전제", LONG_TERM: "장기 연애", SERIOUS_OPEN: "진지한 만남", SHORT_TERM: "단기 연애", CASUAL: "가벼운 만남", UNSURE: "탐색 중" };
   return labels[String(value)] ?? "탐색 중";
+}
+
+function genderLabel(value: unknown) {
+  const labels: Record<string, string> = { WOMAN: "여성", MAN: "남성", NON_BINARY: "기타" };
+  return labels[String(value)] ?? "미입력";
 }
 
 export function AdminExperience() {
@@ -541,7 +594,7 @@ export function AdminExperience() {
                   <button className={`person-row ${active ? "active" : ""}`} key={profile.id} onClick={() => setSelectedId(profile.id)} type="button">
                     <span className="person-avatar">{(profile.name ?? profile.instagram.replace("@", "")).slice(0, 1).toUpperCase()}</span>
                     <span><strong>{profile.name ?? profile.instagram}</strong><small>{profile.instagram}</small></span>
-                    <span className="person-meta"><b>{profileCompletion(profile)}%</b><small>{countryLabel(profile.answers.CB001)}</small></span>
+                    <span className="person-meta"><b>{profileCompletion(profile)}%</b><small>{genderLabel(profile.answers.BIO001)} · {countryLabel(profile.answers.CB001)}</small></span>
                   </button>
                 );
               })}
@@ -551,7 +604,7 @@ export function AdminExperience() {
           <section className="profile-panel">
             <div className="profile-heading">
               <div className="profile-avatar">{(selected.name ?? selected.instagram).slice(0, 1)}</div>
-              <div><small>SELECTED PROFILE</small><h2>{selected.name ?? selected.instagram.replace("@", "")}</h2><p>{selected.instagram} · {countryLabel(selected.answers.CB001)}</p></div>
+              <div><small>SELECTED PROFILE</small><h2>{selected.name ?? selected.instagram.replace("@", "")}</h2><p>{selected.instagram} · {genderLabel(selected.answers.BIO001)} · {countryLabel(selected.answers.CB001)}</p></div>
               <span className="intent-badge">{intentLabel(selected.answers.R001)}</span>
             </div>
 
@@ -571,7 +624,7 @@ export function AdminExperience() {
             <section className="answer-section" id="questions">
               <div className="section-heading"><div><small>CORE ANSWERS</small><h3>핵심 응답 요약</h3></div><button type="button">전체 보기 →</button></div>
               <div className="answer-grid">
-                {["R001", "R002", "CB002", "CH001", "CM002", "CB005"].map((id) => {
+                {["BIO001", "BIO002", "R001", "R002", "CB002", "CH001"].map((id) => {
                   const question = questionMap.get(id);
                   const value = selected.answers[id];
                   if (!question || value === undefined) return null;

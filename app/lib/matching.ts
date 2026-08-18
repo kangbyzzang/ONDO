@@ -118,6 +118,12 @@ function hardConflicts(a: MatchProfile, b: MatchProfile) {
   const aa = a.answers;
   const bb = b.answers;
   const isAbsolute = (profile: MatchProfile, id: string) => profile.importance?.[id] === 4;
+  const acceptsGender = (preference: unknown, gender: unknown) =>
+    !preference || !gender || preference === "ANY" || preference === gender;
+
+  if (!acceptsGender(aa.BIO002, bb.BIO001) || !acceptsGender(bb.BIO002, aa.BIO001)) {
+    conflicts.push("서로가 원하는 상대 성별 조건이 맞지 않습니다.");
+  }
 
   if (
     ((aa.R002 === "EXCLUSIVE" && bb.R002 === "OPEN") ||
@@ -323,7 +329,7 @@ export function calculateMatch(a: MatchProfile, b: MatchProfile): MatchResult {
 export function profileCompletion(profile: MatchProfile) {
   const relevant = questions.filter((question) => !question.showIf || question.showIf(profile.answers));
   const answered = relevant.filter((question) => profile.answers[question.id] !== undefined).length;
-  return Math.min(100, Math.round((answered / Math.max(32, relevant.length)) * 100));
+  return Math.min(100, Math.round((answered / Math.max(34, relevant.length)) * 100));
 }
 
 export function profileSignals(profile: MatchProfile) {

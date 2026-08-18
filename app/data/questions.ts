@@ -87,6 +87,36 @@ const scale = (
 
 export const questions: QuestionDefinition[] = [
   {
+    id: "BIO001",
+    module: "intent",
+    ko: "성별",
+    ja: "性別",
+    type: "single",
+    options: [
+      o("WOMAN", "여성", "女性"),
+      o("MAN", "남성", "男性"),
+      o("NON_BINARY", "논바이너리·기타", "ノンバイナリー・その他"),
+    ],
+    required: true,
+    logic: "INFORMATION_ONLY",
+    baseWeight: 0,
+  },
+  {
+    id: "BIO002",
+    module: "intent",
+    ko: "만나고 싶은 상대",
+    ja: "出会いたい相手",
+    type: "single",
+    options: [
+      o("WOMAN", "여성", "女性"),
+      o("MAN", "남성", "男性"),
+      o("ANY", "성별 무관", "性別を問わない"),
+    ],
+    required: true,
+    logic: "INFORMATION_ONLY",
+    baseWeight: 0,
+  },
+  {
     id: "R001",
     module: "intent",
     ko: "지금 어떤 관계를 찾고 있나요?",

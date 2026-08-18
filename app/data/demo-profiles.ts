@@ -52,6 +52,8 @@ export const demoProfiles: MatchProfile[] = [
     locale: "ko",
     answers: {
       ...shared,
+      BIO001: "WOMAN",
+      BIO002: "MAN",
       R001: "MARRIAGE",
       CB001: "KOREA",
       CM001: 8,
@@ -73,6 +75,8 @@ export const demoProfiles: MatchProfile[] = [
     locale: "ja",
     answers: {
       ...shared,
+      BIO001: "MAN",
+      BIO002: "WOMAN",
       R001: "MARRIAGE",
       CB001: "JAPAN",
       CM001: 9,
@@ -98,6 +102,8 @@ export const demoProfiles: MatchProfile[] = [
     locale: "ja",
     answers: {
       ...shared,
+      BIO001: "WOMAN",
+      BIO002: "MAN",
       R001: "LONG_TERM",
       CB001: "JAPAN",
       CM001: 6,
@@ -128,6 +134,8 @@ export const demoProfiles: MatchProfile[] = [
     locale: "ko",
     answers: {
       ...shared,
+      BIO001: "MAN",
+      BIO002: "WOMAN",
       R001: "SERIOUS_OPEN",
       R002: "OPEN",
       CB001: "KOREA",

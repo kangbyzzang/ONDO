@@ -11,9 +11,12 @@ test("contains the ONDO questionnaire landing experience", async () => {
   assert.match(layout, /온도 ONDO — 한일 진지한 관계 매칭/);
   assert.match(experience, /잘 맞는 사람은/);
   assert.match(experience, /인스타그램 아이디/);
+  assert.match(experience, /나의 성별/);
+  assert.match(experience, /만나고 싶은 상대/);
   assert.match(experience, /나의 관계 온도 알아보기/);
   assert.match(page, /<UserExperience \/>/);
   assert.doesNotMatch(`${experience}${layout}${page}`, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
+  assert.doesNotMatch(experience, /different languages|same temperature|SERIOUS ONLY/);
 });
 
 test("shows an unambiguous survey completion state", async () => {
@@ -55,6 +58,16 @@ test("stores survey answers in protected Firebase documents", async () => {
   assert.match(firebaseConfig, /"googleSignIn"/);
   assert.match(packageJson, /"firebase"/);
   assert.doesNotMatch(`${firebaseClient}${submissions}${packageJson}`, /cloudflare:workers|drizzle-orm|vinext/);
+});
+
+test("uses reciprocal gender preference as a matching condition", async () => {
+  const [questions, matching] = await Promise.all([
+    readFile(new URL("../app/data/questions.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/matching.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(questions, /BIO001/);
+  assert.match(questions, /BIO002/);
+  assert.match(matching, /서로가 원하는 상대 성별 조건이 맞지 않습니다/);
 });
 
 test("ships the bespoke social card and removes the starter preview", async () => {
