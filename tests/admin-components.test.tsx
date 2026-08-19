@@ -3,6 +3,8 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AlgorithmPanel } from "../app/components/admin/AlgorithmPanel";
 import { MatchEvidence } from "../app/components/admin/MatchEvidence";
+import { questionConditionDescriptions, questionRuleSummary } from "../app/lib/algorithm-documentation";
+import { questions } from "../app/data/questions";
 import { calculateMatch, type MatchProfile } from "../app/lib/matching";
 
 const commonAnswers = {
@@ -57,11 +59,30 @@ test("admin match evidence renders detailed calculation data", () => {
 test("admin algorithm reference renders the live configuration", () => {
   const html = renderToStaticMarkup(<AlgorithmPanel />);
   assert.match(html, /현재 매칭 알고리즘/);
-  assert.match(html, /2\.0\.0/);
+  assert.match(html, /2\.1\.0/);
+  assert.match(html, /AI 전달용 전체 알고리즘 명세/);
+  assert.match(html, /전체 명세 복사/);
+  assert.match(html, /7개 하드 조건/);
+  assert.match(html, /eligible=false/);
+  assert.match(html, /LG003과 LG004/);
+  assert.match(html, /국가 간 실행력/);
   assert.match(html, /추천 제외 조건/);
+  assert.match(html, /로직 코드의 실제 계산 의미/);
   assert.match(html, /관계 목적별 모듈 가중치/);
   assert.match(html, /질문별 계산 설정/);
+  assert.match(html, /R001 ∈ \{MARRIAGE, LONG_TERM\}/);
   assert.match(html, /SM002/);
   assert.match(html, /HARD_CONDITION/);
   assert.match(html, /절대 조건/);
+});
+
+test("every conditional question has a human and AI readable inclusion rule", () => {
+  const conditionalQuestions = questions.filter((question) => question.showIf);
+  assert.ok(conditionalQuestions.length > 0);
+  for (const question of conditionalQuestions) {
+    assert.ok(questionConditionDescriptions[question.id], `${question.id} inclusion rule is undocumented`);
+  }
+  for (const question of questions) {
+    assert.doesNotMatch(questionRuleSummary(question).condition, /확인 필요/, `${question.id} flow position is undocumented`);
+  }
 });

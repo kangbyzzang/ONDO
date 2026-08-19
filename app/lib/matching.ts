@@ -162,13 +162,15 @@ export const importanceMultipliers: Record<number, number> = {
 const importanceMultiplier = (value: number | undefined) => importanceMultipliers[value ?? 1] ?? 1;
 
 export const algorithmConfig = {
-  version: "2.0.0",
+  version: "2.1.0",
   updatedAt: "2026-08-19",
   formulas: [
-    "문항 점수 × 기본 가중치 × 두 사용자의 평균 중요도 배수",
-    "모듈 점수 = 모듈 내 가중 점수 합 ÷ 실제 사용된 가중치 합",
-    "최종 점수 = 두 사용자의 관계 목적별 모듈 가중치를 평균해 합산",
-    "국가가 다르면 거리·이주·언어·선호 거주지 실행력을 최종 점수의 10%에 반영",
+    "7개 하드 조건을 먼저 평가하고 conflict가 하나라도 있으면 추천 제외",
+    "문항 유효 가중치 = 기본 가중치 × 두 사용자의 중요도 배수 평균",
+    "모듈 점수 = 모듈 내 Σ(문항 점수×유효 가중치) ÷ Σ(유효 가중치)",
+    "최종 점수 = 실제 계산된 모듈만 관계 목적별 평균 가중치로 재정규화해 합산",
+    "국가가 다르면 거리·이주·언어·선호 거주지 실행력을 최종 점수의 10%에 혼합",
+    "추천 제외 조합은 계산 점수를 최대 42점으로 제한하고 등급을 excluded로 고정",
   ],
   hardConditions: [
     "서로의 성별 선호가 맞지 않거나 성별 정보가 없는 경우",
