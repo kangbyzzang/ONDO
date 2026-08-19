@@ -55,7 +55,9 @@ test("stores survey answers in protected Firebase documents", async () => {
   assert.match(firebaseClient, /data-platform-b4587/);
   assert.match(submissions, /signInAnonymously/);
   assert.match(submissions, /setDoc/);
-  assert.match(rules, /request\.auth\.uid == userId/);
+  assert.match(submissions, /instagramKey/);
+  assert.match(rules, /request\.resource\.data\.instagramKey == instagramKey/);
+  assert.match(rules, /resource\.data\.ownerUid == request\.auth\.uid/);
   assert.match(rules, /kangbyeongyeon05@gmail\.com/);
   assert.match(firebaseConfig, /"anonymous": true/);
   assert.match(firebaseConfig, /"googleSignIn"/);

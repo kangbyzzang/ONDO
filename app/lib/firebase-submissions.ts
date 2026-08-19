@@ -17,6 +17,7 @@ import {
   type Timestamp,
 } from "firebase/firestore";
 import type { Answers, Locale } from "../data/questions";
+import { DUPLICATE_INSTAGRAM_MESSAGE, normalizeInstagramId } from "./instagram";
 import type { MatchProfile } from "./matching";
 import { ADMIN_EMAIL, firebaseAuth, firestore, initializeAuthSession } from "./firebase";
 
@@ -30,6 +31,7 @@ interface SubmissionPayload {
 
 interface SubmissionDocument extends SubmissionPayload {
   ownerUid: string;
+  instagramKey: string;
   intent: string;
   country: string;
   updatedAt?: Timestamp;
@@ -44,28 +46,35 @@ async function anonymousUser() {
 
 export async function saveSubmission(payload: SubmissionPayload) {
   const user = await anonymousUser();
-  const cleanInstagram = payload.instagram.trim().replace(/^@+/, "");
-  if (!/^[A-Za-z0-9._]{2,30}$/.test(cleanInstagram)) {
+  const instagramKey = normalizeInstagramId(payload.instagram);
+  if (!/^[a-z0-9._]{2,30}$/.test(instagramKey)) {
     throw new Error("올바른 인스타그램 아이디를 입력해주세요.");
   }
 
-  await setDoc(
-    doc(firestore, "submissions", user.uid),
-    {
-      ownerUid: user.uid,
-      instagram: `@${cleanInstagram}`,
-      locale: payload.locale,
-      intent: String(payload.answers.R001 ?? "UNSURE"),
-      country: String(payload.answers.CB001 ?? "OTHER"),
-      answers: payload.answers,
-      importance: payload.importance,
-      completion: Math.max(0, Math.min(100, Math.round(payload.completion))),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true },
-  );
+  try {
+    await setDoc(
+      doc(firestore, "submissions", instagramKey),
+      {
+        ownerUid: user.uid,
+        instagramKey,
+        instagram: `@${instagramKey}`,
+        locale: payload.locale,
+        intent: String(payload.answers.R001 ?? "UNSURE"),
+        country: String(payload.answers.CB001 ?? "OTHER"),
+        answers: payload.answers,
+        importance: payload.importance,
+        completion: Math.max(0, Math.min(100, Math.round(payload.completion))),
+        updatedAt: serverTimestamp(),
+      },
+    );
+  } catch (error) {
+    if (typeof error === "object" && error !== null && "code" in error && error.code === "permission-denied") {
+      throw new Error(DUPLICATE_INSTAGRAM_MESSAGE);
+    }
+    throw error;
+  }
 
-  return user.uid;
+  return instagramKey;
 }
 
 export async function signInAdmin() {

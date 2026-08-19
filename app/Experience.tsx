@@ -343,7 +343,7 @@ function QuestionScreen({
   );
 }
 
-function CompleteScreen({ locale, saved, onRestart }: { locale: Locale; saved: boolean; onRestart: () => void }) {
+function CompleteScreen({ locale, saved, errorDetail, onRestart }: { locale: Locale; saved: boolean; errorDetail: string; onRestart: () => void }) {
   const t = copy[locale];
 
   return (
@@ -355,7 +355,7 @@ function CompleteScreen({ locale, saved, onRestart }: { locale: Locale; saved: b
         <div className="complete-copy">
           <div className="eyebrow"><span>●</span>SURVEY COMPLETE</div>
           <h1>{t.completeTitle}</h1>
-          <p>{saved ? t.completeBody : t.retryBody}</p>
+          <p>{saved ? t.completeBody : errorDetail || t.retryBody}</p>
           <div className={`completion-status ${saved ? "saved" : "pending"}`} role="status">
             <span>{saved ? "✓" : "!"}</span>
             <strong>{saved ? t.completeStatus : t.retryStatus}</strong>
@@ -379,6 +379,7 @@ export function UserExperience() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [submissionError, setSubmissionError] = useState("");
 
   useEffect(() => {
     void initializeFirebaseAnalytics();
@@ -408,8 +409,10 @@ export function UserExperience() {
     try {
       await saveSubmission({ instagram, locale, answers, importance, completion });
       setSaved(true);
-    } catch {
+      setSubmissionError("");
+    } catch (error) {
       setSaved(false);
+      setSubmissionError(error instanceof Error ? error.message : copy[locale].retryBody);
     } finally {
       setSubmitting(false);
       setStage("complete");
@@ -469,7 +472,7 @@ export function UserExperience() {
           submitting={submitting}
         />
       )}
-      {stage === "complete" && <CompleteScreen locale={locale} saved={saved} onRestart={() => { setAnswers({}); setImportance({}); setCurrentIndex(0); setStage("welcome"); }} />}
+      {stage === "complete" && <CompleteScreen locale={locale} saved={saved} errorDetail={submissionError} onRestart={() => { setAnswers({}); setImportance({}); setCurrentIndex(0); setSubmissionError(""); setStage("welcome"); }} />}
     </div>
   );
 }

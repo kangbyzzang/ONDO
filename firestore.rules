@@ -11,18 +11,23 @@ service cloud.firestore {
         && request.auth.token.email == "kangbyeongyeon05@gmail.com";
     }
 
-    match /submissions/{userId} {
+    match /submissions/{instagramKey} {
       allow create: if signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.ownerUid == request.auth.uid;
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.instagramKey == instagramKey
+        && request.resource.data.instagram == "@" + instagramKey;
 
-      allow read: if signedIn()
-        && (request.auth.uid == userId || isAdmin());
+      allow get: if signedIn()
+        && (resource.data.ownerUid == request.auth.uid || isAdmin());
+
+      allow list: if isAdmin();
 
       allow update: if signedIn()
-        && request.auth.uid == userId
         && resource.data.ownerUid == request.auth.uid
-        && request.resource.data.ownerUid == request.auth.uid;
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.instagramKey == instagramKey
+        && request.resource.data.instagramKey == resource.data.instagramKey
+        && request.resource.data.instagram == "@" + instagramKey;
 
       allow delete: if isAdmin();
     }
