@@ -79,8 +79,6 @@ a { color: inherit; text-decoration: none; }
 .primary-button:disabled { opacity: .38; cursor: not-allowed; transform: none; box-shadow: none; }
 .privacy-note { margin: 12px 3px 0; display: flex; gap: 7px; align-items: flex-start; color: #888b83; font-size: 10px; line-height: 1.5; }
 .privacy-note span { color: var(--mint); font-size: 15px; line-height: 1; }
-.admin-link { margin-top: 24px; display: inline-flex; align-items: center; gap: 9px; color: #777b74; font-size: 12px; font-weight: 700; border-bottom: 1px solid #b9bbb3; padding-bottom: 3px; }
-.admin-link:hover { color: var(--coral); border-color: var(--coral); }
 
 .question-page { min-height: calc(100vh - 86px); display: grid; place-items: center; padding: 18px 24px 60px; }
 .question-shell { width: min(680px, 100%); }
@@ -151,7 +149,6 @@ a { color: inherit; text-decoration: none; }
 .admin-login-card > p { margin: 0 auto; color: #747970; font-size: 12px; line-height: 1.7; }
 .admin-login-card .admin-login-error { margin-top: 14px; padding: 10px; border-radius: 10px; color: #a1412e; background: var(--coral-pale); }
 .admin-login-card .primary-button { margin-top: 24px; }
-.admin-login-card > em { display: block; margin-top: 12px; color: #8b8f87; font-size: 10px; font-style: normal; }
 .admin-login-card > a { display: inline-block; margin-top: 26px; color: #737970; font-size: 10px; text-decoration: underline; text-underline-offset: 4px; }
 .admin-app { min-height: 100vh; display: grid; grid-template-columns: 230px 1fr; background: #f1efe9; }
 .admin-sidebar { position: sticky; top: 0; height: 100vh; padding: 31px 24px 24px; display: flex; flex-direction: column; border-right: 1px solid #dfe0d8; background: #f8f6f0; }

@@ -17,7 +17,7 @@ import {
   type Timestamp,
 } from "firebase/firestore";
 import type { Answers, Locale } from "../data/questions";
-import { ADMIN_EMAILS, isAdminEmail } from "./admin-access";
+import { isAdminEmail } from "./admin-access";
 import { DUPLICATE_INSTAGRAM_MESSAGE, normalizeInstagramId } from "./instagram";
 import type { MatchProfile } from "./matching";
 import { firebaseAuth, firestore, initializeAuthSession } from "./firebase";
@@ -88,7 +88,7 @@ export async function signInAdmin() {
   const user = (await signInWithPopup(firebaseAuth, provider)).user;
   if (!isAdminEmail(user.email)) {
     await signOut(firebaseAuth);
-    throw new Error(`등록된 관리자 계정만 접근할 수 있습니다: ${ADMIN_EMAILS.join(", ")}`);
+    throw new Error("등록된 관리자 계정만 접근할 수 있습니다.");
   }
   return user;
 }

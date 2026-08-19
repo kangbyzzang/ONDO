@@ -34,7 +34,6 @@ import {
   initializeAuthSession,
   initializeFirebaseAnalytics,
 } from "./lib/firebase";
-import { ADMIN_EMAILS } from "./lib/admin-access";
 
 type Stage = "welcome" | "questions" | "complete";
 type Gender = "WOMAN" | "MAN" | "NON_BINARY";
@@ -56,7 +55,6 @@ const copy = {
     minutes: "약 6분",
     questions: "30–40문항",
     adaptive: "맞춤형 질문",
-    admin: "관리자 분석 화면 보기",
     next: "다음 질문",
     back: "이전",
     skip: "답변하지 않기",
@@ -86,7 +84,6 @@ const copy = {
     minutes: "約6分",
     questions: "30〜40問",
     adaptive: "適応型質問",
-    admin: "管理者分析画面を見る",
     next: "次の質問",
     back: "戻る",
     skip: "回答しない",
@@ -232,7 +229,6 @@ function Landing({
           <p id="instagram-note" className="privacy-note"><span>⌁</span>{t.privacy}</p>
         </form>
 
-        <Link className="admin-link" href="/admin">{t.admin}<span>→</span></Link>
       </section>
     </main>
   );
@@ -571,7 +567,6 @@ export function AdminExperience() {
           <button className="primary-button" disabled={!authReady || authBusy} onClick={() => void handleAdminSignIn()} type="button">
             {authBusy ? "로그인 중…" : "Google로 관리자 로그인"}<span>→</span>
           </button>
-          <em>{ADMIN_EMAILS.join(" · ")}</em>
           <Link href="/">← 사용자 설문으로 돌아가기</Link>
         </section>
       </main>

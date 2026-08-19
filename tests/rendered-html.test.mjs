@@ -16,6 +16,7 @@ test("contains the EEUM questionnaire landing experience", async () => {
   assert.match(experience, /만나고 싶은 상대/);
   assert.match(experience, /나와 잘 맞는 인연 알아보기/);
   assert.match(experience, /이음 운영팀/);
+  assert.doesNotMatch(experience, /관리자 분석 화면 보기|管理者分析画面を見る|className="admin-link"|href="\/admin"/);
   assert.doesNotMatch(`${experience}${layout}`, /온도|ONDO/);
   assert.match(page, /<UserExperience \/>/);
   assert.doesNotMatch(`${experience}${layout}${page}`, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
@@ -40,6 +41,7 @@ test("contains the admin compatibility dashboard", async () => {
   assert.match(experience, /추천 후보/);
   assert.match(experience, /핵심 응답 요약/);
   assert.match(experience, /Google로 관리자 로그인/);
+  assert.doesNotMatch(experience, /ADMIN_EMAILS\.join/);
   assert.match(experience, /현재 알고리즘/);
   assert.match(experience, /MatchEvidence/);
   assert.doesNotMatch(experience, /demoProfiles/);
