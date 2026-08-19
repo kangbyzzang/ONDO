@@ -8,7 +8,10 @@ service cloud.firestore {
 
     function isAdmin() {
       return signedIn()
-        && request.auth.token.email == "kangbyeongyeon05@gmail.com";
+        && (
+          request.auth.token.email == "kangbyeongyeon05@gmail.com"
+          || request.auth.token.email == "gim67507@gmail.com"
+        );
     }
 
     match /submissions/{instagramKey} {

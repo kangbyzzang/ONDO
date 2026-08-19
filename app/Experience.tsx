@@ -23,17 +23,18 @@ import {
   tierLabels,
 } from "./lib/matching";
 import {
+  isAdminUser,
   listSubmissionsForAdmin,
   saveSubmission,
   signInAdmin,
   signOutAdmin,
 } from "./lib/firebase-submissions";
 import {
-  ADMIN_EMAIL,
   firebaseAuth,
   initializeAuthSession,
   initializeFirebaseAnalytics,
 } from "./lib/firebase";
+import { ADMIN_EMAILS } from "./lib/admin-access";
 
 type Stage = "welcome" | "questions" | "complete";
 type Gender = "WOMAN" | "MAN" | "NON_BINARY";
@@ -510,7 +511,7 @@ export function AdminExperience() {
       if (!active) return;
       unsubscribe = onAuthStateChanged(firebaseAuth, (user) => {
         if (!active) return;
-        const allowedUser = user?.email === ADMIN_EMAIL ? user : null;
+        const allowedUser = isAdminUser(user) ? user : null;
         setAdminUser(allowedUser);
         setAuthReady(true);
         if (!allowedUser) {
@@ -570,7 +571,7 @@ export function AdminExperience() {
           <button className="primary-button" disabled={!authReady || authBusy} onClick={() => void handleAdminSignIn()} type="button">
             {authBusy ? "로그인 중…" : "Google로 관리자 로그인"}<span>→</span>
           </button>
-          <em>{ADMIN_EMAIL}</em>
+          <em>{ADMIN_EMAILS.join(" · ")}</em>
           <Link href="/">← 사용자 설문으로 돌아가기</Link>
         </section>
       </main>

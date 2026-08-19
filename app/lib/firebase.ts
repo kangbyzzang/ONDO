@@ -13,7 +13,6 @@ const firebaseConfig = {
   measurementId: "G-B7NSZ88LCJ",
 };
 
-export const ADMIN_EMAIL = "kangbyeongyeon05@gmail.com";
 export const firebaseApp = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const firebaseAuth = getAuth(firebaseApp);
 export const firestore = getFirestore(firebaseApp);

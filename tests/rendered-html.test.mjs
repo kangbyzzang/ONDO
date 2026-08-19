@@ -27,10 +27,10 @@ test("shows an unambiguous survey completion state", async () => {
 });
 
 test("contains the admin compatibility dashboard", async () => {
-  const [experience, adminPage, firebaseClient] = await Promise.all([
+  const [experience, adminPage, adminAccess] = await Promise.all([
     readFile(new URL("../app/Experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/lib/firebase.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/admin-access.ts", import.meta.url), "utf8"),
   ]);
   assert.match(experience, /좋은 인연의 가능성/);
   assert.match(experience, /참여자/);
@@ -40,7 +40,8 @@ test("contains the admin compatibility dashboard", async () => {
   assert.match(experience, /현재 알고리즘/);
   assert.match(experience, /MatchEvidence/);
   assert.doesNotMatch(experience, /demoProfiles/);
-  assert.match(firebaseClient, /kangbyeongyeon05@gmail\.com/);
+  assert.match(adminAccess, /kangbyeongyeon05@gmail\.com/);
+  assert.match(adminAccess, /gim67507@gmail\.com/);
   assert.match(adminPage, /<AdminExperience \/>/);
 });
 
@@ -59,6 +60,7 @@ test("stores survey answers in protected Firebase documents", async () => {
   assert.match(rules, /request\.resource\.data\.instagramKey == instagramKey/);
   assert.match(rules, /resource\.data\.ownerUid == request\.auth\.uid/);
   assert.match(rules, /kangbyeongyeon05@gmail\.com/);
+  assert.match(rules, /gim67507@gmail\.com/);
   assert.match(firebaseConfig, /"anonymous": true/);
   assert.match(firebaseConfig, /"googleSignIn"/);
   assert.match(packageJson, /"firebase"/);

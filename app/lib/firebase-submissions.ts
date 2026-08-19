@@ -17,9 +17,10 @@ import {
   type Timestamp,
 } from "firebase/firestore";
 import type { Answers, Locale } from "../data/questions";
+import { ADMIN_EMAILS, isAdminEmail } from "./admin-access";
 import { DUPLICATE_INSTAGRAM_MESSAGE, normalizeInstagramId } from "./instagram";
 import type { MatchProfile } from "./matching";
-import { ADMIN_EMAIL, firebaseAuth, firestore, initializeAuthSession } from "./firebase";
+import { firebaseAuth, firestore, initializeAuthSession } from "./firebase";
 
 interface SubmissionPayload {
   instagram: string;
@@ -79,15 +80,15 @@ export async function saveSubmission(payload: SubmissionPayload) {
 
 export async function signInAdmin() {
   await initializeAuthSession();
-  if (firebaseAuth.currentUser?.email === ADMIN_EMAIL) return firebaseAuth.currentUser;
+  if (isAdminEmail(firebaseAuth.currentUser?.email)) return firebaseAuth.currentUser;
   if (firebaseAuth.currentUser) await signOut(firebaseAuth);
 
   const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ login_hint: ADMIN_EMAIL, prompt: "select_account" });
+  provider.setCustomParameters({ prompt: "select_account" });
   const user = (await signInWithPopup(firebaseAuth, provider)).user;
-  if (user.email !== ADMIN_EMAIL) {
+  if (!isAdminEmail(user.email)) {
     await signOut(firebaseAuth);
-    throw new Error(`${ADMIN_EMAIL} 계정만 관리자 화면에 접근할 수 있습니다.`);
+    throw new Error(`등록된 관리자 계정만 접근할 수 있습니다: ${ADMIN_EMAILS.join(", ")}`);
   }
   return user;
 }
@@ -97,7 +98,7 @@ export async function signOutAdmin() {
 }
 
 export function isAdminUser(user: User | null): user is User {
-  return user?.email === ADMIN_EMAIL;
+  return isAdminEmail(user?.email);
 }
 
 export async function listSubmissionsForAdmin(): Promise<MatchProfile[]> {
