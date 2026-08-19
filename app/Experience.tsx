@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import Link from "next/link";
-import { demoProfiles } from "./data/demo-profiles";
+import { AlgorithmPanel } from "./components/admin/AlgorithmPanel";
+import { MatchEvidence } from "./components/admin/MatchEvidence";
 import {
   type AnswerValue,
   type Answers,
@@ -52,7 +53,7 @@ const copy = {
     start: "나의 관계 온도 알아보기",
     privacy: "아이디는 운영팀 확인용이며 공개 프로필에 바로 노출되지 않아요.",
     minutes: "약 6분",
-    questions: "25–32문항",
+    questions: "30–40문항",
     adaptive: "맞춤형 질문",
     admin: "관리자 분석 화면 보기",
     next: "다음 질문",
@@ -82,7 +83,7 @@ const copy = {
     start: "私の関係温度を知る",
     privacy: "IDは運営チームの確認用で、公開プロフィールにはすぐ表示されません。",
     minutes: "約6分",
-    questions: "25〜32問",
+    questions: "30〜40問",
     adaptive: "適応型質問",
     admin: "管理者分析画面を見る",
     next: "次の質問",
@@ -127,6 +128,26 @@ function Logo() {
       <span>온도</span>
       <small>ONDO</small>
     </Link>
+  );
+}
+
+function AdminSidebar() {
+  return (
+    <aside className="admin-sidebar">
+      <Logo />
+      <nav>
+        <a className="active" href="#dashboard"><span>⌂</span>대시보드</a>
+        <a href="#people"><span>◎</span>참여자</a>
+        <a href="#matches"><span>↔</span>매칭 분석</a>
+        <a href="#questions"><span>?</span>질문 응답</a>
+        <a href="#algorithm"><span>⌘</span>현재 알고리즘</a>
+      </nav>
+      <div className="admin-sidebar-foot">
+        <small>ADMIN MODE</small>
+        <strong>온도 운영팀</strong>
+        <Link href="/">사용자 화면으로 →</Link>
+      </div>
+    </aside>
   );
 }
 
@@ -468,13 +489,15 @@ function genderLabel(value: unknown) {
 }
 
 export function AdminExperience() {
-  const [profiles, setProfiles] = useState<MatchProfile[]>(demoProfiles);
-  const [selectedId, setSelectedId] = useState(demoProfiles[0].id);
+  const [profiles, setProfiles] = useState<MatchProfile[]>([]);
+  const [selectedId, setSelectedId] = useState("");
+  const [matchTargetId, setMatchTargetId] = useState("");
   const [query, setQuery] = useState("");
   const [adminUser, setAdminUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [authBusy, setAuthBusy] = useState(false);
   const [authError, setAuthError] = useState("");
+  const [profilesReady, setProfilesReady] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -487,17 +510,24 @@ export function AdminExperience() {
         const allowedUser = user?.email === ADMIN_EMAIL ? user : null;
         setAdminUser(allowedUser);
         setAuthReady(true);
-        if (!allowedUser) return;
+        if (!allowedUser) {
+          setProfilesReady(false);
+          return;
+        }
 
+        setProfilesReady(false);
         void listSubmissionsForAdmin()
           .then((real) => {
             if (!active) return;
-            setProfiles(real.length ? [...real, ...demoProfiles] : demoProfiles);
-            setSelectedId(real[0]?.id ?? demoProfiles[0].id);
+            setProfiles(real);
+            setSelectedId(real[0]?.id ?? "");
           })
           .catch((error: unknown) => {
             if (!active) return;
             setAuthError(error instanceof Error ? error.message : "응답을 불러오지 못했습니다.");
+          })
+          .finally(() => {
+            if (active) setProfilesReady(true);
           });
       });
     }).catch((error: unknown) => {
@@ -544,32 +574,40 @@ export function AdminExperience() {
     );
   }
 
+  if (!profilesReady || profiles.length === 0) {
+    return (
+      <div className="admin-app">
+        <AdminSidebar />
+        <main className="admin-main" id="dashboard">
+          <header className="admin-header">
+            <div><p>ONDO ADMIN · LIVE</p><h1>매칭 운영 대시보드</h1></div>
+            <button className="admin-avatar" onClick={() => void signOutAdmin()} title="관리자 로그아웃" type="button">ON</button>
+          </header>
+          <section className="admin-empty-state">
+            <span>{profilesReady ? "0" : "…"}</span>
+            <div><small>{profilesReady ? "NO SUBMISSIONS" : "LOADING"}</small><h2>{profilesReady ? "아직 저장된 실제 응답이 없어요." : "실제 응답을 불러오고 있어요."}</h2><p>{profilesReady ? "설문이 제출되면 이곳에 참여자와 상세 매칭 분석이 표시됩니다. 샘플 프로필은 실제 추천에 섞이지 않습니다." : "Firebase의 보호된 응답 데이터를 확인하고 있습니다."}</p></div>
+          </section>
+          <AlgorithmPanel />
+        </main>
+      </div>
+    );
+  }
+
   const filteredProfiles = profiles.filter((profile) => `${profile.name ?? ""} ${profile.instagram}`.toLowerCase().includes(query.toLowerCase()));
   const selected = profiles.find((profile) => profile.id === selectedId) ?? profiles[0];
   const candidates = profiles
     .filter((profile) => profile.id !== selected.id)
     .map((profile) => ({ profile, result: calculateMatch(selected, profile) }))
     .sort((left, right) => Number(right.result.eligible) - Number(left.result.eligible) || right.result.overall - left.result.overall);
-  const topMatch = candidates.find((candidate) => candidate.result.eligible) ?? candidates[0];
+  const topMatch = candidates.find((candidate) => candidate.profile.id === matchTargetId)
+    ?? candidates.find((candidate) => candidate.result.eligible)
+    ?? candidates[0];
   const completionAverage = Math.round(profiles.reduce((sum, profile) => sum + profileCompletion(profile), 0) / profiles.length);
   const absoluteCount = Object.values(selected.importance ?? {}).filter((value) => value === 4).length;
 
   return (
     <div className="admin-app">
-      <aside className="admin-sidebar">
-        <Logo />
-        <nav>
-          <a className="active" href="#dashboard"><span>⌂</span>대시보드</a>
-          <a href="#people"><span>◎</span>참여자</a>
-          <a href="#matches"><span>↔</span>매칭 분석</a>
-          <a href="#questions"><span>?</span>질문 관리</a>
-        </nav>
-        <div className="admin-sidebar-foot">
-          <small>ADMIN MODE</small>
-          <strong>온도 운영팀</strong>
-          <Link href="/">사용자 화면으로 →</Link>
-        </div>
-      </aside>
+      <AdminSidebar />
 
       <main className="admin-main" id="dashboard">
         <header className="admin-header">
@@ -578,7 +616,7 @@ export function AdminExperience() {
         </header>
 
         <section className="stat-grid">
-          <article className="stat-card warm"><span>전체 참여자</span><strong>{profiles.length}<small>명</small></strong><em>+{Math.max(1, profiles.length - demoProfiles.length)} 실제 응답</em></article>
+          <article className="stat-card warm"><span>전체 참여자</span><strong>{profiles.length}<small>명</small></strong><em>Firebase 실제 응답만 집계</em></article>
           <article className="stat-card mint"><span>평균 프로필 완성도</span><strong>{completionAverage}<small>%</small></strong><em>권장 기준 50% 이상</em></article>
           <article className="stat-card ink"><span>활성 매칭 후보</span><strong>{candidates.filter((item) => item.result.eligible).length}<small>쌍</small></strong><em>절대 조건 검증 완료</em></article>
         </section>
@@ -637,33 +675,20 @@ export function AdminExperience() {
           <section className="match-panel" id="matches">
             <div className="panel-title"><div><small>COMPATIBILITY</small><h2>추천 후보</h2></div><span>LIVE</span></div>
             <div className="candidate-list">
-              {candidates.slice(0, 3).map(({ profile, result }, index) => (
-                <article className={!result.eligible ? "excluded" : ""} key={profile.id}>
+              {candidates.slice(0, 6).map(({ profile, result }, index) => (
+                <button className={`${!result.eligible ? "excluded" : ""} ${topMatch?.profile.id === profile.id ? "selected" : ""}`} key={profile.id} onClick={() => setMatchTargetId(profile.id)} type="button">
                   <div className="candidate-rank">0{index + 1}</div>
                   <div className="candidate-avatar">{(profile.name ?? profile.instagram).slice(0, 1)}</div>
-                  <div className="candidate-copy"><strong>{profile.name ?? profile.instagram.replace("@", "")}</strong><small>{countryLabel(profile.answers.CB001)} · {tierLabels[result.tier]}</small></div>
-                  <div className="candidate-score"><strong>{result.overall}<small>%</small></strong><span>{result.eligible ? confidenceLabels[result.confidence] : "제외"}</span></div>
-                </article>
+                  <div className="candidate-copy"><strong>{profile.name ?? profile.instagram.replace("@", "")}</strong><small>{countryLabel(profile.answers.CB001)} · {tierLabels[result.tier]} · 공통 {result.sharedAnswers}개</small></div>
+                  <div className="candidate-score"><strong>{result.overall}<small>%</small></strong><span>{result.eligible ? `신뢰도 ${confidenceLabels[result.confidence]}` : "추천 제외"}</span></div>
+                </button>
               ))}
             </div>
 
-            {topMatch && (
-              <div className="match-detail">
-                <div className="section-heading"><div><small>TOP MATCH DETAIL</small><h3>{topMatch.profile.name ?? topMatch.profile.instagram}와의 분석</h3></div><b>{topMatch.result.overall}%</b></div>
-                <div className="module-bars">
-                  {topMatch.result.modules.slice(0, 6).map((module) => (
-                    <div key={module.module}><span>{moduleLabels[module.module].ko}</span><i><b style={{ width: `${module.score}%` }} /></i><em>{module.score}</em></div>
-                  ))}
-                </div>
-                <div className="explanation-grid">
-                  <div className="good"><strong>✦ 잘 맞는 부분</strong>{topMatch.result.strengths.slice(0, 2).map((text) => <p key={text}>{text}</p>)}</div>
-                  <div className="watch"><strong>↗ 확인하면 좋은 부분</strong>{(topMatch.result.conflicts.length ? topMatch.result.conflicts : topMatch.result.cautions).slice(0, 2).map((text) => <p key={text}>{text}</p>)}</div>
-                </div>
-                <p className="confidence-line">공통 답변 {topMatch.result.sharedAnswers}개 기준 · 신뢰도 {confidenceLabels[topMatch.result.confidence]}</p>
-              </div>
-            )}
+            {topMatch ? <MatchEvidence selected={selected} candidate={topMatch.profile} result={topMatch.result} /> : <div className="no-candidate"><strong>비교할 후보가 없습니다.</strong><p>최소 두 명의 실제 응답이 필요합니다.</p></div>}
           </section>
         </div>
+        <AlgorithmPanel />
       </main>
     </div>
   );

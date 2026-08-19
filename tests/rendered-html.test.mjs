@@ -37,6 +37,9 @@ test("contains the admin compatibility dashboard", async () => {
   assert.match(experience, /추천 후보/);
   assert.match(experience, /핵심 응답 요약/);
   assert.match(experience, /Google로 관리자 로그인/);
+  assert.match(experience, /현재 알고리즘/);
+  assert.match(experience, /MatchEvidence/);
+  assert.doesNotMatch(experience, /demoProfiles/);
   assert.match(firebaseClient, /kangbyeongyeon05@gmail\.com/);
   assert.match(adminPage, /<AdminExperience \/>/);
 });

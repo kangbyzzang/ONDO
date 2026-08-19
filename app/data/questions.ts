@@ -373,7 +373,28 @@ const marriage = ["MR001", "MR002", "CH001", "CB003", "CB004", "CB005", "CR001",
 const longTerm = ["MR001", "CH001", "CB003", "CB004", "CB005", "CR001", "FN001", "FM003", "AF001", "AF002"];
 const seriousOpen = ["DT001", "DT002", "CB003", "CB004", "CB005", "CR001", "AF001", "AF002", "BD001", "BD002"];
 const casual = ["DT001", "DT002", "DT003", "BD001", "BD002", "AF001", "AF002"];
-const detail = ["LG001", "LG002", "LG003", "LG004", "LG005", "CM003", "CM005", "CF001", "CF004", "SM002", "LS005", "LS008", "VL004", "RG001", "MR003", "CH003", "CH005", "CB007"];
+const detail = [
+  "SM002",
+  "CB007",
+  "CH003",
+  "CH005",
+  "MR003",
+  "LG001",
+  "LG002",
+  "LG003",
+  "LG004",
+  "LG005",
+  "CM003",
+  "CM005",
+  "CF001",
+  "CF004",
+  "VL004",
+  "LS005",
+  "LS008",
+  "RG001",
+];
+
+export const MAX_QUESTION_COUNT = 40;
 
 export function getQuestionFlow(answers: Answers): QuestionDefinition[] {
   const intent = String(answers.R001 ?? "UNSURE");
@@ -395,7 +416,7 @@ export function getQuestionFlow(answers: Answers): QuestionDefinition[] {
       seen.add(question.id);
       return question.showIf ? question.showIf(answers) : true;
     })
-    .slice(0, 32);
+    .slice(0, MAX_QUESTION_COUNT);
 }
 
 export const questionMap = byId;
