@@ -3,6 +3,8 @@
 한일 진지한 관계를 위한 적응형 설문 및 관리자 매칭 분석 웹앱입니다.
 Next.js와 Firebase Authentication/Firestore를 사용하며 Vercel 배포를 기준으로 구성되어 있습니다.
 
+운영 주소: `https://eeumdating.vercel.app`
+
 ## Prerequisites
 
 - Node.js `24.x`
@@ -22,7 +24,8 @@ Firebase 프로젝트 `data-platform-b4587`에서 다음 항목을 활성화해�
 - Firestore Database
 - Authentication > Sign-in method > Anonymous
 - Authentication > Sign-in method > Google
-- Authentication > Settings > Authorized domains에 `ondo-korea-japan-theta.vercel.app`
+- Authentication > Settings > Authorized domains에 `eeumdating.vercel.app`
+- 기존 `ondo-korea-japan-theta.vercel.app` 주소는 이전 링크 호환용으로 유지
 
 보안 규칙은 `firestore.rules`에 있습니다. 배포 전 Firebase CLI로 로그인한 뒤 실행합니다.
 

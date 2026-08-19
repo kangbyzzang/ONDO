@@ -14,12 +14,13 @@ const geistMono = Geist_Mono({
 
 const title = "이음 EEUM — 한일 진지한 관계 매칭";
 const description = "관계 목적, 가치관, 생활 방식과 한일 국제연애 현실을 함께 보는 적응형 궁합 진단.";
-const deploymentHost = process.env.VERCEL_PROJECT_PRODUCTION_URL ?? process.env.VERCEL_URL;
+const productionUrl = "https://eeumdating.vercel.app";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(deploymentHost ? `https://${deploymentHost}` : "http://localhost:3000"),
+  metadataBase: new URL(productionUrl),
   title,
   description,
+  alternates: { canonical: "/" },
   openGraph: { title, description, type: "website" },
   twitter: { card: "summary_large_image", title, description },
 };

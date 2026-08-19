@@ -9,6 +9,7 @@ test("contains the EEUM questionnaire landing experience", async () => {
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(layout, /이음 EEUM — 한일 진지한 관계 매칭/);
+  assert.match(layout, /https:\/\/eeumdating\.vercel\.app/);
   assert.match(experience, /잘 맞는 사람은/);
   assert.match(experience, /인스타그램 아이디/);
   assert.match(experience, /나의 성별/);
