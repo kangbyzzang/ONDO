@@ -1,4 +1,4 @@
-# ONDO — 한일 진지한 관계 매칭
+# EEUM — 한일 진지한 관계 매칭
 
 한일 진지한 관계를 위한 적응형 설문 및 관리자 매칭 분석 웹앱입니다.
 Next.js와 Firebase Authentication/Firestore를 사용하며 Vercel 배포를 기준으로 구성되어 있습니다.
@@ -34,4 +34,4 @@ npx firebase-tools deploy --only firestore,auth
 ## 관리자
 
 `/admin`에서 Google로 로그인합니다. 전체 응답 조회는
-`kangbyeongyeon05@gmail.com` 계정에만 허용됩니다.
+`kangbyeongyeon05@gmail.com`, `gim67507@gmail.com` 계정에만 허용됩니다.

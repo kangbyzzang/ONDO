@@ -8,7 +8,7 @@
     "providers": {
       "anonymous": true,
       "googleSignIn": {
-        "oAuthBrandDisplayName": "ONDO",
+        "oAuthBrandDisplayName": "EEUM",
         "supportEmail": "kangbyeongyeon05@gmail.com"
       }
     }

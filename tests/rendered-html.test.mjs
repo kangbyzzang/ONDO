@@ -2,18 +2,20 @@ import assert from "node:assert/strict";
 import { access, readFile } from "node:fs/promises";
 import test from "node:test";
 
-test("contains the ONDO questionnaire landing experience", async () => {
+test("contains the EEUM questionnaire landing experience", async () => {
   const [experience, layout, page] = await Promise.all([
     readFile(new URL("../app/Experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
   ]);
-  assert.match(layout, /온도 ONDO — 한일 진지한 관계 매칭/);
+  assert.match(layout, /이음 EEUM — 한일 진지한 관계 매칭/);
   assert.match(experience, /잘 맞는 사람은/);
   assert.match(experience, /인스타그램 아이디/);
   assert.match(experience, /나의 성별/);
   assert.match(experience, /만나고 싶은 상대/);
-  assert.match(experience, /나의 관계 온도 알아보기/);
+  assert.match(experience, /나와 잘 맞는 인연 알아보기/);
+  assert.match(experience, /이음 운영팀/);
+  assert.doesNotMatch(`${experience}${layout}`, /온도|ONDO/);
   assert.match(page, /<UserExperience \/>/);
   assert.doesNotMatch(`${experience}${layout}${page}`, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
   assert.doesNotMatch(experience, /different languages|same temperature|SERIOUS ONLY/);
@@ -80,6 +82,8 @@ test("uses reciprocal gender preference as a matching condition", async () => {
 test("ships the bespoke social card and removes the starter preview", async () => {
   const socialCard = await readFile(new URL("../app/opengraph-image.tsx", import.meta.url), "utf8");
   assert.match(socialCard, /ImageResponse/);
+  assert.match(socialCard, /이음 EEUM/);
   assert.match(socialCard, /KOREA × JAPAN, SERIOUSLY/);
+  assert.doesNotMatch(socialCard, /온도|ONDO/);
   await assert.rejects(access(new URL("../app\/_sites-preview\/SkeletonPreview.tsx", import.meta.url)));
 });

@@ -96,7 +96,7 @@ function questionRuleText() {
 }
 
 export function buildAlgorithmSpecification() {
-  return `# ONDO 한일 매칭 알고리즘 전체 명세
+  return `# EEUM 한일 매칭 알고리즘 전체 명세
 Version: ${algorithmConfig.version}
 Updated: ${algorithmConfig.updatedAt}
 

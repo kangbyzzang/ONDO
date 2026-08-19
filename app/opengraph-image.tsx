@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "온도 ONDO — 한일 진지한 관계 매칭";
+export const alt = "이음 EEUM — 한일 진지한 관계 매칭";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -33,8 +33,8 @@ export default function OpenGraphImage() {
       <div style={{ display: "flex", position: "relative", flexDirection: "column", justifyContent: "space-between" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 30, fontWeight: 800 }}>
           <span style={{ color: "#ef5033" }}>●</span>
-          <span>온도</span>
-          <span style={{ color: "#7e837b", fontSize: 18, letterSpacing: 4 }}>ONDO</span>
+          <span>이음</span>
+          <span style={{ color: "#7e837b", fontSize: 18, letterSpacing: 4 }}>EEUM</span>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
           <span style={{ color: "#ef5033", fontSize: 18, fontWeight: 700, letterSpacing: 3 }}>KOREA × JAPAN, SERIOUSLY</span>

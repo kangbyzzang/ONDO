@@ -45,13 +45,13 @@ const copy = {
     eyebrow: "KOREA × JAPAN, SERIOUSLY",
     headlineA: "잘 맞는 사람은,",
     headlineB: "대화 전에도 보이는 게 있어요.",
-    body: "당신이 원하는 관계와 생활의 온도를 차분히 알아보고, 서로에게 좋은 사람이 될 가능성을 섬세하게 분석해요.",
+    body: "당신이 원하는 관계와 생활 방식을 차분히 알아보고, 서로에게 좋은 인연이 될 가능성을 섬세하게 분석해요.",
     instagram: "먼저 인스타그램 아이디를 알려주세요",
     gender: "나의 성별",
     preferredGender: "만나고 싶은 상대",
     genderRequired: "성별과 만나고 싶은 상대를 선택해주세요.",
     placeholder: "your.instagram",
-    start: "나의 관계 온도 알아보기",
+    start: "나와 잘 맞는 인연 알아보기",
     privacy: "아이디는 운영팀 확인용이며 공개 프로필에 바로 노출되지 않아요.",
     minutes: "약 6분",
     questions: "30–40문항",
@@ -75,13 +75,13 @@ const copy = {
     eyebrow: "KOREA × JAPAN, SERIOUSLY",
     headlineA: "相性の良さは、",
     headlineB: "話す前から見えることがあります。",
-    body: "あなたが望む関係と暮らしの温度を知り、お互いに良いパートナーになれる可能性を丁寧に分析します。",
+    body: "あなたが望む関係と暮らし方を知り、お互いに良いご縁になれる可能性を丁寧に分析します。",
     instagram: "まずInstagramのIDを教えてください",
     gender: "私の性別",
     preferredGender: "出会いたい相手",
     genderRequired: "性別と出会いたい相手を選択してください。",
     placeholder: "your.instagram",
-    start: "私の関係温度を知る",
+    start: "相性の良いご縁を知る",
     privacy: "IDは運営チームの確認用で、公開プロフィールにはすぐ表示されません。",
     minutes: "約6分",
     questions: "30〜40問",
@@ -124,10 +124,10 @@ const preferenceOptions: { value: GenderPreference; ko: string; ja: string }[] =
 
 function Logo() {
   return (
-    <Link className="brand" href="/" aria-label="온도 홈">
+    <Link className="brand" href="/" aria-label="이음 홈">
       <span className="brand-mark"><i /><i /></span>
-      <span>온도</span>
-      <small>ONDO</small>
+      <span>이음</span>
+      <small>EEUM</small>
     </Link>
   );
 }
@@ -145,7 +145,7 @@ function AdminSidebar() {
       </nav>
       <div className="admin-sidebar-foot">
         <small>ADMIN MODE</small>
-        <strong>온도 운영팀</strong>
+        <strong>이음 운영팀</strong>
         <Link href="/">사용자 화면으로 →</Link>
       </div>
     </aside>
@@ -584,7 +584,7 @@ export function AdminExperience() {
         <AdminSidebar />
         <main className="admin-main" id="dashboard">
           <header className="admin-header">
-            <div><p>ONDO ADMIN · LIVE</p><h1>매칭 운영 대시보드</h1></div>
+            <div><p>EEUM ADMIN · LIVE</p><h1>매칭 운영 대시보드</h1></div>
             <button className="admin-avatar" onClick={() => void signOutAdmin()} title="관리자 로그아웃" type="button">ON</button>
           </header>
           <section className="admin-empty-state">
