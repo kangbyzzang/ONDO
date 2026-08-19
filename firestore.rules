@@ -22,12 +22,9 @@ service cloud.firestore {
 
       allow list: if isAdmin();
 
-      allow update: if signedIn()
-        && resource.data.ownerUid == request.auth.uid
-        && request.resource.data.ownerUid == request.auth.uid
-        && request.resource.data.instagramKey == instagramKey
-        && request.resource.data.instagramKey == resource.data.instagramKey
-        && request.resource.data.instagram == "@" + instagramKey;
+      // A submitted Instagram ID is immutable, including for its original owner.
+      // This keeps the collection strictly one response per normalized ID.
+      allow update: if false;
 
       allow delete: if isAdmin();
     }

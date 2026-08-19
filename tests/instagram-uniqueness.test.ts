@@ -21,6 +21,6 @@ test("submission storage and Firestore rules enforce the normalized document key
   assert.doesNotMatch(submissions, /doc\(firestore, "submissions", user\.uid\)/);
   assert.match(rules, /match \/submissions\/\{instagramKey\}/);
   assert.match(rules, /request\.resource\.data\.instagramKey == instagramKey/);
-  assert.match(rules, /resource\.data\.ownerUid == request\.auth\.uid/);
+  assert.match(rules, /allow update: if false/);
   assert.match(rules, /allow list: if isAdmin\(\)/);
 });
