@@ -45,11 +45,19 @@ const copy = {
     headlineA: "잘 맞는 사람은,",
     headlineB: "대화 전에도 보이는 게 있어요.",
     body: "당신이 원하는 관계와 생활 방식을 차분히 알아보고, 서로에게 좋은 인연이 될 가능성을 섬세하게 분석해요.",
-    instagram: "먼저 인스타그램 아이디를 알려주세요",
+    profileEyebrow: "BASIC PROFILE",
+    profileTitle: "먼저, 기본 정보를 알려주세요",
+    profileHint: "각 항목은 안전하게 저장되며 매칭 분석에만 사용됩니다.",
+    instagram: "인스타그램 ID",
+    instagramMeta: "연락 및 중복 응답 확인용",
     name: "이름",
+    nameMeta: "관리자 확인용",
     namePlaceholder: "이름을 입력해주세요",
     age: "만 나이",
+    ageMeta: "만 18–99세",
     agePlaceholder: "예: 25",
+    preferenceTitle: "매칭 선호",
+    preferenceHint: "나와 만나고 싶은 상대를 선택해주세요.",
     gender: "나의 성별",
     preferredGender: "만나고 싶은 상대",
     genderRequired: "성별과 만나고 싶은 상대를 선택해주세요.",
@@ -79,11 +87,19 @@ const copy = {
     headlineA: "相性の良さは、",
     headlineB: "話す前から見えることがあります。",
     body: "あなたが望む関係と暮らし方を知り、お互いに良いご縁になれる可能性を丁寧に分析します。",
-    instagram: "まずInstagramのIDを教えてください",
+    profileEyebrow: "BASIC PROFILE",
+    profileTitle: "まず、基本情報を教えてください",
+    profileHint: "各項目は安全に保存され、マッチング分析にのみ使用されます。",
+    instagram: "Instagram ID",
+    instagramMeta: "連絡・重複回答の確認用",
     name: "名前",
+    nameMeta: "運営チームの確認用",
     namePlaceholder: "名前を入力してください",
     age: "年齢（満年齢）",
+    ageMeta: "18〜99歳",
     agePlaceholder: "例：25",
+    preferenceTitle: "マッチング希望",
+    preferenceHint: "自分の性別と出会いたい相手を選択してください。",
     gender: "私の性別",
     preferredGender: "出会いたい相手",
     genderRequired: "性別と出会いたい相手を選択してください。",
@@ -205,45 +221,70 @@ function Landing({
         <h1>{t.headlineA}<br /><em>{t.headlineB}</em></h1>
         <p className="hero-body">{t.body}</p>
 
-        <form className="instagram-card" onSubmit={(event) => { event.preventDefault(); onStart(); }}>
-          <label htmlFor="instagram">{t.instagram}</label>
-          <div className={`instagram-input ${error ? "invalid" : ""}`}>
-            <span>@</span>
-            <input
-              id="instagram"
-              inputMode="text"
-              autoCapitalize="none"
-              autoCorrect="off"
-              value={instagram.replace(/^@/, "")}
-              onChange={(event) => onInstagram(event.target.value)}
-              placeholder={t.placeholder}
-              aria-describedby="instagram-note"
-            />
+        <form className="intake-card" onSubmit={(event) => { event.preventDefault(); onStart(); }}>
+          <div className="intake-heading">
+            <span>{t.profileEyebrow}</span>
+            <h2>{t.profileTitle}</h2>
+            <p>{t.profileHint}</p>
           </div>
-          <div className="personal-fields">
-            <label>
-              <span>{t.name}</span>
-              <input
-                autoComplete="name"
-                maxLength={40}
-                value={name}
-                onChange={(event) => onName(event.target.value)}
-                placeholder={t.namePlaceholder}
-              />
+
+          <div className="profile-fields">
+            <label className="profile-field" htmlFor="instagram">
+              <span className="field-label"><strong>{t.instagram}</strong><small>{t.instagramMeta}</small></span>
+              <span className="field-control instagram-control">
+                <i aria-hidden="true">@</i>
+                <input
+                  id="instagram"
+                  inputMode="text"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  required
+                  value={instagram.replace(/^@/, "")}
+                  onChange={(event) => onInstagram(event.target.value)}
+                  placeholder={t.placeholder}
+                  aria-describedby="profile-privacy"
+                />
+              </span>
             </label>
-            <label>
-              <span>{t.age}</span>
-              <input
-                autoComplete="bday-year"
-                inputMode="numeric"
-                min={18}
-                max={99}
-                type="number"
-                value={age}
-                onChange={(event) => onAge(event.target.value)}
-                placeholder={t.agePlaceholder}
-              />
+
+            <label className="profile-field" htmlFor="name">
+              <span className="field-label"><strong>{t.name}</strong><small>{t.nameMeta}</small></span>
+              <span className="field-control">
+                <input
+                  id="name"
+                  autoComplete="name"
+                  maxLength={40}
+                  required
+                  value={name}
+                  onChange={(event) => onName(event.target.value)}
+                  placeholder={t.namePlaceholder}
+                  aria-describedby="profile-privacy"
+                />
+              </span>
             </label>
+
+            <label className="profile-field" htmlFor="age">
+              <span className="field-label"><strong>{t.age}</strong><small>{t.ageMeta}</small></span>
+              <span className="field-control">
+                <input
+                  id="age"
+                  inputMode="numeric"
+                  min={18}
+                  max={99}
+                  required
+                  type="number"
+                  value={age}
+                  onChange={(event) => onAge(event.target.value)}
+                  placeholder={t.agePlaceholder}
+                  aria-describedby="profile-privacy"
+                />
+              </span>
+            </label>
+          </div>
+
+          <div className="preference-heading">
+            <span>{t.preferenceTitle}</span>
+            <p>{t.preferenceHint}</p>
           </div>
           <div className="identity-fields">
             <fieldset>
@@ -269,7 +310,7 @@ function Landing({
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="primary-button" type="submit">{t.start}<span>↗</span></button>
-          <p id="instagram-note" className="privacy-note"><span>⌁</span>{t.privacy}</p>
+          <p id="profile-privacy" className="privacy-note"><span>⌁</span>{t.privacy}</p>
         </form>
 
       </section>
