@@ -31,5 +31,22 @@ service cloud.firestore {
 
       allow delete: if isAdmin();
     }
+
+    // A privacy-safe existence marker used before the questionnaire starts.
+    // It contains no profile or answer data and can only be created when the
+    // corresponding private submission already exists.
+    match /submissionChecks/{instagramKey} {
+      allow get: if signedIn();
+      allow list: if false;
+
+      allow create: if signedIn()
+        && exists(/databases/$(database)/documents/submissions/$(instagramKey))
+        && request.resource.data.keys().hasOnly(["instagramKey", "submitted", "createdAt"])
+        && request.resource.data.instagramKey == instagramKey
+        && request.resource.data.submitted == true;
+
+      allow update: if false;
+      allow delete: if isAdmin();
+    }
   }
 }

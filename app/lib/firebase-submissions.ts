@@ -8,6 +8,7 @@ import {
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   limit,
   orderBy,
@@ -38,6 +39,18 @@ interface SubmissionDocument extends SubmissionPayload {
   updatedAt?: Timestamp;
 }
 
+function isPermissionDenied(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "permission-denied";
+}
+
+function validateInstagramKey(instagram: string) {
+  const instagramKey = normalizeInstagramId(instagram);
+  if (!/^[a-z0-9._]{2,30}$/.test(instagramKey)) {
+    throw new Error("올바른 인스타그램 아이디를 입력해주세요.");
+  }
+  return instagramKey;
+}
+
 async function anonymousUser() {
   await initializeAuthSession();
   if (firebaseAuth.currentUser?.isAnonymous) return firebaseAuth.currentUser;
@@ -47,10 +60,7 @@ async function anonymousUser() {
 
 export async function saveSubmission(payload: SubmissionPayload) {
   const user = await anonymousUser();
-  const instagramKey = normalizeInstagramId(payload.instagram);
-  if (!/^[a-z0-9._]{2,30}$/.test(instagramKey)) {
-    throw new Error("올바른 인스타그램 아이디를 입력해주세요.");
-  }
+  const instagramKey = validateInstagramKey(payload.instagram);
 
   try {
     await setDoc(
@@ -69,13 +79,46 @@ export async function saveSubmission(payload: SubmissionPayload) {
       },
     );
   } catch (error) {
-    if (typeof error === "object" && error !== null && "code" in error && error.code === "permission-denied") {
+    if (isPermissionDenied(error)) {
       throw new Error(DUPLICATE_INSTAGRAM_MESSAGE);
     }
     throw error;
   }
 
+  try {
+    await setDoc(doc(firestore, "submissionChecks", instagramKey), {
+      instagramKey,
+      submitted: true,
+      createdAt: serverTimestamp(),
+    });
+  } catch {
+    // The submission itself is already safely stored. A later availability
+    // check can recreate this privacy-safe marker if this best-effort write fails.
+  }
+
   return instagramKey;
+}
+
+export async function checkInstagramAlreadySubmitted(instagram: string) {
+  await anonymousUser();
+  const instagramKey = validateInstagramKey(instagram);
+  const marker = doc(firestore, "submissionChecks", instagramKey);
+  const snapshot = await getDoc(marker);
+  if (snapshot.exists()) return true;
+
+  try {
+    // Rules permit this write only when a private submission with this exact
+    // normalized ID already exists. No answers or profile data are exposed.
+    await setDoc(marker, {
+      instagramKey,
+      submitted: true,
+      createdAt: serverTimestamp(),
+    });
+    return true;
+  } catch (error) {
+    if (isPermissionDenied(error)) return false;
+    throw error;
+  }
 }
 
 export async function signInAdmin() {

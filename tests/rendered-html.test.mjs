@@ -20,6 +20,9 @@ test("contains the EEUM questionnaire landing experience", async () => {
   assert.match(experience, /나의 성별/);
   assert.match(experience, /만나고 싶은 상대/);
   assert.match(experience, /나와 잘 맞는 인연 알아보기/);
+  assert.match(experience, /제출 이력을 확인하고 있어요/);
+  assert.match(experience, /이미 제출된 Instagram ID예요/);
+  assert.match(experience, /checkInstagramAlreadySubmitted/);
   assert.match(experience, /이음 운영팀/);
   assert.doesNotMatch(experience, /관리자 분석 화면 보기|管理者分析画面を見る|className="admin-link"|href="\/admin"/);
   assert.doesNotMatch(`${experience}${layout}`, /온도|ONDO/);
@@ -34,6 +37,8 @@ test("shows an unambiguous survey completion state", async () => {
   assert.match(experience, /조건에 맞는 짝이 나오면 인스타그램으로 알려드릴게요/);
   assert.match(experience, /프로필이 안전하게 저장되었어요/);
   assert.match(experience, /Instagram 메시지 요청함도 가끔 확인해주세요/);
+  assert.match(experience, /MATCHING IN PROGRESS/);
+  assert.match(experience, /조건에 맞는 좋은 인연을 찾고 있어요/);
   assert.match(experience, /プロフィールの作成が完了しました！/);
   assert.match(experience, /条件に合うお相手が見つかったら、Instagramでお知らせします/);
   assert.doesNotMatch(experience, /설문이 완료되었어요/);

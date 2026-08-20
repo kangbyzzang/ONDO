@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { onAuthStateChanged, type User } from "firebase/auth";
 import Link from "next/link";
 import { AlgorithmPanel } from "./components/admin/AlgorithmPanel";
@@ -24,6 +24,7 @@ import {
 } from "./lib/matching";
 import {
   isAdminUser,
+  checkInstagramAlreadySubmitted,
   listSubmissionsForAdmin,
   saveSubmission,
   signInAdmin,
@@ -64,6 +65,10 @@ const copy = {
     profileRequired: "이름과 만 나이를 정확히 입력해주세요. (만 18–99세)",
     placeholder: "your.instagram",
     start: "나와 잘 맞는 인연 알아보기",
+    checkingInstagram: "제출 이력을 확인하고 있어요…",
+    instagramAvailable: "확인 완료 · 참여 가능한 ID예요.",
+    instagramDuplicate: "이미 제출된 Instagram ID예요. 한 아이디로 한 번만 참여할 수 있어요.",
+    instagramCheckError: "제출 이력을 확인하지 못했어요. 잠시 후 다시 시도해주세요.",
     privacy: "입력한 정보는 운영팀의 매칭 분석에만 사용되며 공개 프로필에 바로 노출되지 않아요.",
     minutes: "약 6분",
     questions: "30–40문항",
@@ -80,6 +85,7 @@ const copy = {
     completeBody: "조건에 맞는 짝이 나오면 인스타그램으로 알려드릴게요.",
     completeStatus: "프로필이 안전하게 저장되었어요",
     completeNote: "Instagram 메시지 요청함도 가끔 확인해주세요.",
+    matchingNow: "조건에 맞는 좋은 인연을 찾고 있어요",
     retryStatus: "저장 확인 필요",
     retryBody: "설문은 완료되었지만 저장 상태를 확인하지 못했어요. 처음 화면으로 돌아가 다시 제출해주세요.",
     restart: "처음 화면으로",
@@ -108,6 +114,10 @@ const copy = {
     profileRequired: "名前と満年齢を正しく入力してください。（18〜99歳）",
     placeholder: "your.instagram",
     start: "相性の良いご縁を知る",
+    checkingInstagram: "提出履歴を確認しています…",
+    instagramAvailable: "確認完了・参加できるIDです。",
+    instagramDuplicate: "このInstagram IDは提出済みです。1つのIDにつき1回のみ参加できます。",
+    instagramCheckError: "提出履歴を確認できませんでした。しばらくしてからもう一度お試しください。",
     privacy: "入力した情報は運営チームのマッチング分析にのみ使用され、公開プロフィールにはすぐ表示されません。",
     minutes: "約6分",
     questions: "30〜40問",
@@ -124,6 +134,7 @@ const copy = {
     completeBody: "条件に合うお相手が見つかったら、Instagramでお知らせします。",
     completeStatus: "プロフィールを安全に保存しました",
     completeNote: "Instagramのメッセージリクエストも時々ご確認ください。",
+    matchingNow: "条件に合う素敵なご縁を探しています",
     retryStatus: "保存状態の確認が必要です",
     retryBody: "アンケートは完了しましたが、保存状態を確認できませんでした。最初の画面に戻って、もう一度送信してください。",
     restart: "最初の画面へ",
@@ -201,6 +212,9 @@ function Landing({
   onAge,
   onGender,
   onPreferredGender,
+  instagramCheckStatus,
+  checkingInstagram,
+  onInstagramBlur,
   onStart,
 }: {
   locale: Locale;
@@ -215,7 +229,10 @@ function Landing({
   onAge: (value: string) => void;
   onGender: (value: Gender) => void;
   onPreferredGender: (value: GenderPreference) => void;
-  onStart: () => void;
+  instagramCheckStatus: "idle" | "available" | "duplicate" | "error";
+  checkingInstagram: boolean;
+  onInstagramBlur: () => void;
+  onStart: () => Promise<void>;
 }) {
   const t = copy[locale];
   return (
@@ -225,7 +242,7 @@ function Landing({
         <h1>{t.headlineA}<br /><em>{t.headlineB}</em></h1>
         <p className="hero-body">{t.body}</p>
 
-        <form className="intake-card" onSubmit={(event) => { event.preventDefault(); onStart(); }}>
+        <form className="intake-card" onSubmit={(event) => { event.preventDefault(); void onStart(); }}>
           <div className="intake-heading">
             <span>{t.profileEyebrow}</span>
             <h2>{t.profileTitle}</h2>
@@ -245,10 +262,23 @@ function Landing({
                   required
                   value={instagram.replace(/^@/, "")}
                   onChange={(event) => onInstagram(event.target.value)}
+                  onBlur={onInstagramBlur}
                   placeholder={t.placeholder}
                   aria-describedby="profile-privacy"
                 />
               </span>
+              {checkingInstagram || instagramCheckStatus !== "idle" ? (
+                <span className={`instagram-check ${checkingInstagram ? "checking" : instagramCheckStatus}`} role="status">
+                  <i aria-hidden="true">{checkingInstagram ? "…" : instagramCheckStatus === "available" ? "✓" : "!"}</i>
+                  {checkingInstagram
+                    ? t.checkingInstagram
+                    : instagramCheckStatus === "available"
+                      ? t.instagramAvailable
+                      : instagramCheckStatus === "duplicate"
+                        ? t.instagramDuplicate
+                        : t.instagramCheckError}
+                </span>
+              ) : null}
             </label>
 
             <label className="profile-field" htmlFor="name">
@@ -313,7 +343,9 @@ function Landing({
             </fieldset>
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button className="primary-button" type="submit">{t.start}<span>↗</span></button>
+          <button aria-busy={checkingInstagram} className="primary-button" disabled={checkingInstagram} type="submit">
+            {checkingInstagram ? t.checkingInstagram : t.start}<span>{checkingInstagram ? "…" : "↗"}</span>
+          </button>
           <p id="profile-privacy" className="privacy-note"><span>⌁</span>{t.privacy}</p>
         </form>
 
@@ -432,44 +464,48 @@ function CompleteScreen({ locale, saved, errorDetail, onRestart }: { locale: Loc
   const t = copy[locale];
   const journey = locale === "ko"
     ? [
-        ["01", "프로필 분석", "답변 저장 완료"],
-        ["02", "조건 매칭", "좋은 인연 탐색 중"],
-        ["03", "Instagram 안내", "매칭 시 바로 연락"],
+        ["01", "프로필 저장", "완료"],
+        ["02", "조건 매칭", "진행 중"],
+        ["03", "Instagram 안내", "매칭 시"],
       ]
     : [
-        ["01", "プロフィール分析", "回答を保存しました"],
-        ["02", "条件マッチング", "良いご縁を検索中"],
-        ["03", "Instagramで通知", "見つかり次第ご連絡"],
+        ["01", "プロフィール保存", "完了"],
+        ["02", "条件マッチング", "進行中"],
+        ["03", "Instagram通知", "マッチ時"],
       ];
 
   return (
     <main className={`complete-page ${saved ? "is-saved" : "has-error"}`}>
       <section className="complete-card">
         <div className={`completion-visual ${saved ? "saved" : "pending"}`} aria-hidden="true">
-          <span className="completion-orbit">EEUM · MATCH ·</span>
-          <i>{saved ? "♥" : "!"}</i>
+          <i>{saved ? "✓" : "!"}</i>
         </div>
         <div className="complete-copy">
           <div className="eyebrow"><span>●</span>{saved ? t.completeEyebrow : "SAVE CHECK"}</div>
           <h1>{saved ? t.completeTitle : t.retryStatus}</h1>
           <p>{saved ? t.completeBody : errorDetail || t.retryBody}</p>
 
-          {saved ? (
-            <div className="completion-journey" aria-label={locale === "ko" ? "앞으로의 매칭 과정" : "今後のマッチングの流れ"}>
-              {journey.map(([number, title, description], index) => (
-                <div className={index === 0 ? "done" : "waiting"} key={number}>
-                  <span>{index === 0 ? "✓" : number}</span>
-                  <strong>{title}</strong>
-                  <small>{description}</small>
-                </div>
-              ))}
-            </div>
-          ) : null}
-
           <div className={`completion-status ${saved ? "saved" : "pending"}`} role="status">
             <span>{saved ? "✓" : "!"}</span>
             <strong>{saved ? t.completeStatus : t.retryStatus}</strong>
           </div>
+          {saved ? (
+            <div className="matching-progress">
+              <div className="matching-progress-head">
+                <span aria-hidden="true"><i /></span>
+                <div><small>MATCHING IN PROGRESS</small><strong>{t.matchingNow}</strong></div>
+              </div>
+              <div className="completion-journey" aria-label={locale === "ko" ? "앞으로의 매칭 과정" : "今後のマッチングの流れ"}>
+                {journey.map(([number, title, description], index) => (
+                  <div className={index === 0 ? "done" : index === 1 ? "active" : "waiting"} key={number}>
+                    <span>{index === 0 ? "✓" : number}</span>
+                    <strong>{title}</strong>
+                    <small>{description}</small>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {saved ? <p className="completion-note"><span>⌁</span>{t.completeNote}</p> : null}
           <button className="complete-home-button" onClick={onRestart} type="button">{t.restart}<span>→</span></button>
         </div>
@@ -493,12 +529,36 @@ export function UserExperience() {
   const [submitting, setSubmitting] = useState(false);
   const [saved, setSaved] = useState(false);
   const [submissionError, setSubmissionError] = useState("");
+  const [checkingInstagram, setCheckingInstagram] = useState(false);
+  const [instagramCheckStatus, setInstagramCheckStatus] = useState<"idle" | "available" | "duplicate" | "error">("idle");
+  const instagramValueRef = useRef(instagram);
 
   useEffect(() => {
     void initializeFirebaseAnalytics();
   }, []);
 
-  const start = () => {
+  const verifyInstagram = async (value: string) => {
+    const clean = value.trim().replace(/^@/, "");
+    if (!/^[A-Za-z0-9._]{2,30}$/.test(clean)) return false;
+    setCheckingInstagram(true);
+    try {
+      const duplicate = await checkInstagramAlreadySubmitted(clean);
+      if (instagramValueRef.current.trim().replace(/^@/, "").toLowerCase() !== clean.toLowerCase()) return false;
+      setInstagramCheckStatus(duplicate ? "duplicate" : "available");
+      if (duplicate) setError(copy[locale].instagramDuplicate);
+      return !duplicate;
+    } catch {
+      if (instagramValueRef.current.trim().replace(/^@/, "").toLowerCase() === clean.toLowerCase()) {
+        setInstagramCheckStatus("error");
+        setError(copy[locale].instagramCheckError);
+      }
+      return false;
+    } finally {
+      setCheckingInstagram(false);
+    }
+  };
+
+  const start = async () => {
     const clean = instagram.trim().replace(/^@/, "");
     if (!/^[A-Za-z0-9._]{2,30}$/.test(clean)) {
       setError(locale === "ko" ? "인스타그램 아이디를 확인해주세요." : "Instagram IDを確認してください。");
@@ -514,6 +574,7 @@ export function UserExperience() {
       setError(copy[locale].genderRequired);
       return;
     }
+    if (!(await verifyInstagram(clean))) return;
     setInstagram(`@${clean}`);
     setName(cleanName);
     setAnswers((current) => ({
@@ -580,7 +641,10 @@ export function UserExperience() {
           gender={gender}
           preferredGender={preferredGender}
           error={error}
-          onInstagram={(value) => { setInstagram(value); setError(""); }}
+          instagramCheckStatus={instagramCheckStatus}
+          checkingInstagram={checkingInstagram}
+          onInstagram={(value) => { instagramValueRef.current = value; setInstagram(value); setInstagramCheckStatus("idle"); setError(""); }}
+          onInstagramBlur={() => { void verifyInstagram(instagram); }}
           onName={(value) => { setName(value); setError(""); }}
           onAge={(value) => { setAge(value); setError(""); }}
           onGender={(value) => { setGender(value); setError(""); }}

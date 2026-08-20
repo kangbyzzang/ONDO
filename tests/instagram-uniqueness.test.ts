@@ -17,12 +17,20 @@ test("submission storage and Firestore rules enforce the normalized document key
   ]);
 
   assert.match(submissions, /doc\(firestore, "submissions", instagramKey\)/);
+  assert.match(submissions, /checkInstagramAlreadySubmitted/);
+  assert.match(submissions, /doc\(firestore, "submissionChecks", instagramKey\)/);
+  assert.match(submissions, /getDoc\(marker\)/);
   assert.match(submissions, /permission-denied/);
   assert.doesNotMatch(submissions, /doc\(firestore, "submissions", user\.uid\)/);
   assert.match(rules, /match \/submissions\/\{instagramKey\}/);
   assert.match(rules, /request\.resource\.data\.instagramKey == instagramKey/);
   assert.match(rules, /allow update: if false/);
   assert.match(rules, /allow list: if isAdmin\(\)/);
+  assert.match(rules, /match \/submissionChecks\/\{instagramKey\}/);
+  assert.match(rules, /allow get: if signedIn\(\)/);
+  assert.match(rules, /exists\(\/databases\/\$\(database\)\/documents\/submissions\/\$\(instagramKey\)\)/);
+  assert.match(rules, /hasOnly\(\["instagramKey", "submitted", "createdAt"\]\)/);
+  assert.doesNotMatch(rules, /match \/submissionChecks\/\{instagramKey\}[\s\S]*allow list: if signedIn\(\)/);
   assert.match(rules, /kangbyeongyeon05@gmail\.com/);
   assert.match(rules, /gim67507@gmail\.com/);
 });
