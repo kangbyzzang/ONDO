@@ -3,6 +3,7 @@ import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
 import { AlgorithmPanel } from "../app/components/admin/AlgorithmPanel";
 import { MatchEvidence } from "../app/components/admin/MatchEvidence";
+import { createMatchDmMessages } from "../app/components/admin/MatchDmComposer";
 import { questionConditionDescriptions, questionRuleSummary } from "../app/lib/algorithm-documentation";
 import { questions } from "../app/data/questions";
 import { calculateMatch, type MatchProfile } from "../app/lib/matching";
@@ -52,8 +53,18 @@ test("admin match evidence renders detailed calculation data", () => {
   assert.match(html, /절대조건 판정/);
   assert.match(html, /모듈별 적합도/);
   assert.match(html, /문항별 계산 근거/);
+  assert.match(html, /매칭 안내 DM/);
+  assert.match(html, /한국어 문구 복사/);
+  assert.match(html, /日本語をコピー/);
+  assert.match(html, /@candidate/);
   assert.match(html, /공통 답변/);
   assert.match(html, /SIMILARITY|ONE_WAY_FIT|HARD_CONDITION/);
+});
+
+test("admin DM messages are personalized in Korean and Japanese", () => {
+  const messages = createMatchDmMessages(selected, candidate, 87);
+  assert.equal(messages.ko, "선택 사용자님 조건에 맞는 사람이 나타났어요!\n지금 바로 연락해보세요🧡\n\n인스타그램 아이디: @candidate\n적합도: 87%");
+  assert.equal(messages.ja, "선택 사용자さん、条件に合うお相手が見つかりました！\n今すぐ連絡してみてください🧡\n\nInstagram ID：@candidate\n相性度：87%");
 });
 
 test("admin algorithm reference renders the live configuration", () => {

@@ -30,16 +30,22 @@ test("contains the EEUM questionnaire landing experience", async () => {
 
 test("shows an unambiguous survey completion state", async () => {
   const experience = await readFile(new URL("../app/Experience.tsx", import.meta.url), "utf8");
-  assert.match(experience, /설문이 완료되었어요/);
-  assert.match(experience, /응답 저장 완료/);
+  assert.match(experience, /프로필 작성이 완료되었습니다!/);
+  assert.match(experience, /조건에 맞는 짝이 나오면 인스타그램으로 알려드릴게요/);
+  assert.match(experience, /프로필이 안전하게 저장되었어요/);
+  assert.match(experience, /Instagram 메시지 요청함도 가끔 확인해주세요/);
+  assert.match(experience, /プロフィールの作成が完了しました！/);
+  assert.match(experience, /条件に合うお相手が見つかったら、Instagramでお知らせします/);
+  assert.doesNotMatch(experience, /설문이 완료되었어요/);
   assert.doesNotMatch(experience, /예상 상위 적합도|다음 5개 질문으로 정확도 높이기|displayCompletion/);
 });
 
 test("contains the admin compatibility dashboard", async () => {
-  const [experience, adminPage, adminAccess] = await Promise.all([
+  const [experience, adminPage, adminAccess, matchDmComposer] = await Promise.all([
     readFile(new URL("../app/Experience.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/admin/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/admin-access.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/admin/MatchDmComposer.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(experience, /좋은 인연의 가능성/);
   assert.match(experience, /참여자/);
@@ -49,6 +55,9 @@ test("contains the admin compatibility dashboard", async () => {
   assert.doesNotMatch(experience, /ADMIN_EMAILS\.join/);
   assert.match(experience, /현재 알고리즘/);
   assert.match(experience, /MatchEvidence/);
+  assert.match(matchDmComposer, /매칭 안내 DM/);
+  assert.match(matchDmComposer, /한국어 문구 복사/);
+  assert.match(matchDmComposer, /日本語をコピー/);
   assert.doesNotMatch(experience, /demoProfiles/);
   assert.match(adminAccess, /kangbyeongyeon05@gmail\.com/);
   assert.match(adminAccess, /gim67507@gmail\.com/);

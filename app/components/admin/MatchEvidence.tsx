@@ -6,6 +6,7 @@ import {
   type MatchProfile,
   type MatchResult,
 } from "../../lib/matching";
+import { MatchDmComposer } from "./MatchDmComposer";
 
 function profileValue(profile: MatchProfile, id: string) {
   const question = questionMap.get(id);
@@ -30,6 +31,8 @@ export function MatchEvidence({ selected, candidate, result }: { selected: Match
           <div><dt>국경 실행력</dt><dd>{result.crossBorderFeasibility ? `${result.crossBorderFeasibility.score}%` : "동일 국가·해당 없음"}</dd></div>
         </dl>
       </div>
+
+      <MatchDmComposer recipient={selected} candidate={candidate} result={result} />
 
       <div className="pair-profile-grid">
         {[selected, candidate].map((profile, index) => (

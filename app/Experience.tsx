@@ -75,9 +75,11 @@ const copy = {
     importanceHint: "절대 조건으로 선택하면 맞지 않는 상대는 추천에서 제외돼요.",
     save: "프로필 저장하기",
     saving: "분석하고 있어요…",
-    completeTitle: "설문이 완료되었어요.",
-    completeBody: "답변이 안전하게 저장되었고 관리자 매칭 분석에 반영됩니다.",
-    completeStatus: "응답 저장 완료",
+    completeEyebrow: "PROFILE READY",
+    completeTitle: "프로필 작성이 완료되었습니다!",
+    completeBody: "조건에 맞는 짝이 나오면 인스타그램으로 알려드릴게요.",
+    completeStatus: "프로필이 안전하게 저장되었어요",
+    completeNote: "Instagram 메시지 요청함도 가끔 확인해주세요.",
     retryStatus: "저장 확인 필요",
     retryBody: "설문은 완료되었지만 저장 상태를 확인하지 못했어요. 처음 화면으로 돌아가 다시 제출해주세요.",
     restart: "처음 화면으로",
@@ -117,9 +119,11 @@ const copy = {
     importanceHint: "絶対条件にすると、合わない相手は推薦から除外されます。",
     save: "プロフィールを保存",
     saving: "分析しています…",
-    completeTitle: "アンケートが完了しました。",
-    completeBody: "回答は安全に保存され、管理者のマッチング分析に反映されます。",
-    completeStatus: "回答を保存しました",
+    completeEyebrow: "PROFILE READY",
+    completeTitle: "プロフィールの作成が完了しました！",
+    completeBody: "条件に合うお相手が見つかったら、Instagramでお知らせします。",
+    completeStatus: "プロフィールを安全に保存しました",
+    completeNote: "Instagramのメッセージリクエストも時々ご確認ください。",
     retryStatus: "保存状態の確認が必要です",
     retryBody: "アンケートは完了しましたが、保存状態を確認できませんでした。最初の画面に戻って、もう一度送信してください。",
     restart: "最初の画面へ",
@@ -426,22 +430,48 @@ function QuestionScreen({
 
 function CompleteScreen({ locale, saved, errorDetail, onRestart }: { locale: Locale; saved: boolean; errorDetail: string; onRestart: () => void }) {
   const t = copy[locale];
+  const journey = locale === "ko"
+    ? [
+        ["01", "프로필 분석", "답변 저장 완료"],
+        ["02", "조건 매칭", "좋은 인연 탐색 중"],
+        ["03", "Instagram 안내", "매칭 시 바로 연락"],
+      ]
+    : [
+        ["01", "プロフィール分析", "回答を保存しました"],
+        ["02", "条件マッチング", "良いご縁を検索中"],
+        ["03", "Instagramで通知", "見つかり次第ご連絡"],
+      ];
 
   return (
-    <main className="complete-page">
+    <main className={`complete-page ${saved ? "is-saved" : "has-error"}`}>
       <section className="complete-card">
-        <div className={`completion-check ${saved ? "saved" : "pending"}`} aria-hidden="true">
-          <span>{saved ? "✓" : "!"}</span>
+        <div className={`completion-visual ${saved ? "saved" : "pending"}`} aria-hidden="true">
+          <span className="completion-orbit">EEUM · MATCH ·</span>
+          <i>{saved ? "♥" : "!"}</i>
         </div>
         <div className="complete-copy">
-          <div className="eyebrow"><span>●</span>SURVEY COMPLETE</div>
-          <h1>{t.completeTitle}</h1>
+          <div className="eyebrow"><span>●</span>{saved ? t.completeEyebrow : "SAVE CHECK"}</div>
+          <h1>{saved ? t.completeTitle : t.retryStatus}</h1>
           <p>{saved ? t.completeBody : errorDetail || t.retryBody}</p>
+
+          {saved ? (
+            <div className="completion-journey" aria-label={locale === "ko" ? "앞으로의 매칭 과정" : "今後のマッチングの流れ"}>
+              {journey.map(([number, title, description], index) => (
+                <div className={index === 0 ? "done" : "waiting"} key={number}>
+                  <span>{index === 0 ? "✓" : number}</span>
+                  <strong>{title}</strong>
+                  <small>{description}</small>
+                </div>
+              ))}
+            </div>
+          ) : null}
+
           <div className={`completion-status ${saved ? "saved" : "pending"}`} role="status">
             <span>{saved ? "✓" : "!"}</span>
             <strong>{saved ? t.completeStatus : t.retryStatus}</strong>
           </div>
-          <button className="primary-button" onClick={onRestart} type="button">{t.restart}<span>→</span></button>
+          {saved ? <p className="completion-note"><span>⌁</span>{t.completeNote}</p> : null}
+          <button className="complete-home-button" onClick={onRestart} type="button">{t.restart}<span>→</span></button>
         </div>
       </section>
     </main>
