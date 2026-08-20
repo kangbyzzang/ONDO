@@ -22,6 +22,7 @@ test("contains the EEUM questionnaire landing experience", async () => {
   assert.match(experience, /나와 잘 맞는 인연 알아보기/);
   assert.match(experience, /제출 이력을 확인하고 있어요/);
   assert.match(experience, /이미 제출된 Instagram ID예요/);
+  assert.match(experience, /이미 제출된 프로필입니다/);
   assert.match(experience, /checkInstagramAlreadySubmitted/);
   assert.match(experience, /이음 운영팀/);
   assert.doesNotMatch(experience, /관리자 분석 화면 보기|管理者分析画面を見る|className="admin-link"|href="\/admin"/);

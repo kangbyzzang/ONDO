@@ -69,6 +69,7 @@ const copy = {
     instagramAvailable: "확인 완료 · 참여 가능한 ID예요.",
     instagramDuplicate: "이미 제출된 Instagram ID예요. 한 아이디로 한 번만 참여할 수 있어요.",
     instagramCheckError: "제출 이력을 확인하지 못했어요. 잠시 후 다시 시도해주세요.",
+    alreadySubmitted: "이미 제출된 프로필입니다",
     privacy: "입력한 정보는 운영팀의 매칭 분석에만 사용되며 공개 프로필에 바로 노출되지 않아요.",
     minutes: "약 6분",
     questions: "30–40문항",
@@ -118,6 +119,7 @@ const copy = {
     instagramAvailable: "確認完了・参加できるIDです。",
     instagramDuplicate: "このInstagram IDは提出済みです。1つのIDにつき1回のみ参加できます。",
     instagramCheckError: "提出履歴を確認できませんでした。しばらくしてからもう一度お試しください。",
+    alreadySubmitted: "提出済みのプロフィールです",
     privacy: "入力した情報は運営チームのマッチング分析にのみ使用され、公開プロフィールにはすぐ表示されません。",
     minutes: "約6分",
     questions: "30〜40問",
@@ -343,8 +345,8 @@ function Landing({
             </fieldset>
           </div>
           {error && <p className="form-error" role="alert">{error}</p>}
-          <button aria-busy={checkingInstagram} className="primary-button" disabled={checkingInstagram} type="submit">
-            {checkingInstagram ? t.checkingInstagram : t.start}<span>{checkingInstagram ? "…" : "↗"}</span>
+          <button aria-busy={checkingInstagram} className="primary-button" disabled={checkingInstagram || instagramCheckStatus === "duplicate"} type="submit">
+            {checkingInstagram ? t.checkingInstagram : instagramCheckStatus === "duplicate" ? t.alreadySubmitted : t.start}<span>{checkingInstagram ? "…" : instagramCheckStatus === "duplicate" ? "✓" : "↗"}</span>
           </button>
           <p id="profile-privacy" className="privacy-note"><span>⌁</span>{t.privacy}</p>
         </form>
@@ -545,7 +547,6 @@ export function UserExperience() {
       const duplicate = await checkInstagramAlreadySubmitted(clean);
       if (instagramValueRef.current.trim().replace(/^@/, "").toLowerCase() !== clean.toLowerCase()) return false;
       setInstagramCheckStatus(duplicate ? "duplicate" : "available");
-      if (duplicate) setError(copy[locale].instagramDuplicate);
       return !duplicate;
     } catch {
       if (instagramValueRef.current.trim().replace(/^@/, "").toLowerCase() === clean.toLowerCase()) {
