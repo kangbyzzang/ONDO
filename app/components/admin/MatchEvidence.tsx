@@ -40,6 +40,8 @@ export function MatchEvidence({ selected, candidate, result }: { selected: Match
             <dl>
               <div><dt>성별</dt><dd>{profileValue(profile, "BIO001")}</dd></div>
               <div><dt>선호 상대</dt><dd>{profileValue(profile, "BIO002")}</dd></div>
+              <div><dt>만 나이</dt><dd>{profileValue(profile, "BIO004")}</dd></div>
+              <div><dt>허용 나이 차이</dt><dd>{profileValue(profile, "AGE001")}</dd></div>
               <div><dt>관계 목적</dt><dd>{profileValue(profile, "R001")}</dd></div>
               <div><dt>거주 국가</dt><dd>{profileValue(profile, "CB001")}</dd></div>
               <div><dt>프로필 완성도</dt><dd>{profileCompletion(profile)}%</dd></div>

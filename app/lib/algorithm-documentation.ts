@@ -37,7 +37,7 @@ export const logicDescriptions: Record<QuestionDefinition["logic"], string> = {
 
 const intakeQuestionIds = new Set(["BIO001", "BIO002", "BIO003", "BIO004"]);
 const sharedQuestionIds = new Set([
-  "R001", "R002", "CB001", "CB002", "CM001", "CM002", "LS001", "LS002", "LS003", "LS004",
+  "R001", "R002", "AGE001", "CB001", "CB002", "CM001", "CM002", "LS001", "LS002", "LS003", "LS004",
   "PS001", "PS002", "VL001", "VL003", "SM001", "AL001",
 ]);
 const detailQuestionIds = new Set([
@@ -107,10 +107,10 @@ Updated: ${algorithmConfig.updatedAt}
 - 출력은 eligible, overall(0..100 정수), tier, confidence, 모듈 점수, 강점, 주의점, 하드 조건 판정, 문항별 근거, 국가 간 실행력이다.
 - 계산은 A/B 순서를 바꿔도 같은 결과가 나오도록 대칭적으로 설계되어 있다.
 - missing importance는 1로 처리한다. importance 값별 배수는 1→1.0, 2→1.25, 3→1.75, 4→2.4이다.
-- importance=4는 모든 차이를 자동 제외하지 않는다. R001, R002, MR001의 명시된 하드 조건에서만 '절대 조건' 플래그로 사용된다.
+- importance=4는 모든 차이를 자동 제외하지 않는다. R001, R002, MR001의 명시된 하드 조건에서만 '절대 조건' 플래그로 사용된다. AGE001은 importance와 무관하게 양쪽 최대 허용 범위를 항상 적용한다.
 
 ## 2. 실행 순서
-1. 7개 하드 조건을 먼저 평가한다.
+1. 8개 하드 조건을 먼저 평가한다.
 2. status=conflict가 하나라도 있으면 eligible=false다. unknown은 단독으로 제외 사유가 아니다.
 3. 일반 문항 점수와 두 개의 교차 기대 적합도 점수를 계산해 모듈별로 집계한다.
 4. 두 사람의 R001별 모듈 가중치를 평균하고, 실제 점수가 존재하는 모듈만 재정규화해 raw overall을 계산한다.
@@ -124,27 +124,34 @@ H1 성별 선호
 - accepts(preference, gender) := preference == ANY OR preference == gender.
 - accepts(A.BIO002, B.BIO001) AND accepts(B.BIO002, A.BIO001)가 아니면 conflict, 둘 다 만족하면 pass.
 
-H2 관계 형태
+H2 나이 차이
+- BIO004(만 나이) 또는 AGE001(허용 가능한 최대 나이 차이)이 한쪽이라도 없거나 유효하지 않으면 unknown.
+- AGE001 값은 0,2,4,6,10 또는 ANY이며 ANY의 허용 한도는 무한대로 처리한다.
+- ageGap=abs(A.BIO004-B.BIO004).
+- ageGap > A의 AGE001 한도 또는 ageGap > B의 AGE001 한도이면 conflict. 두 조건을 모두 통과하면 pass.
+- AGE001의 일반 문항 점수는 하드 판정이 pass면 100, conflict면 0, unknown이면 점수 집계에서 제외한다.
+
+H3 관계 형태
 - R002가 한쪽이라도 없으면 unknown.
 - {EXCLUSIVE, OPEN}의 정반대 조합이고 A 또는 B가 R002 importance=4이면 conflict. 그 외 pass.
 
-H3 자녀 계획
+H4 자녀 계획
 - CH001이 한쪽이라도 없으면 unknown.
 - DEFINITELY_YES와 DEFINITELY_NO의 정반대 조합이면 importance와 무관하게 conflict. 그 외 pass.
 
-H4 흡연
+H5 흡연
 - SM001 또는 SM002가 한쪽이라도 없으면 unknown.
 - A.SM002=NON_SMOKER_ONLY이고 B.SM001∈{OCCASIONAL,E_CIGARETTE,YES}, 또는 그 반대이면 conflict. 그 외 pass.
 
-H5 거리·거주국
+H6 거리·거주국
 - CB001 또는 CB002가 한쪽이라도 없으면 unknown.
 - A.CB001 != B.CB001이고 A/B의 CB002 중 하나라도 NO 또는 DOMESTIC_ONLY이면 conflict. 그 외 pass.
 
-H6 관계 목적
+H7 관계 목적
 - R001이 한쪽이라도 없으면 unknown.
 - 한 명이 MARRIAGE, 다른 한 명이 CASUAL 또는 SHORT_TERM이고 A 또는 B가 R001 importance=4이면 conflict. 그 외 pass.
 
-H7 결혼 의향
+H8 결혼 의향
 - MR001 숫자 답변이 한쪽이라도 없으면 unknown.
 - 한 명이 8 이상, 다른 한 명이 3 이하이고 A 또는 B가 MR001 importance=4이면 conflict. 그 외 pass.
 
@@ -185,7 +192,7 @@ H7 결혼 의향
 - LG003과 LG004는 ONE_WAY_FIT으로 표시되어 있지만 현재 특별 교차 쌍에는 없으므로 실제로는 숫자 직접 유사도로 계산된다.
 
 ## 5. 문항·모듈·최종 점수 집계
-- INFORMATION_ONLY 문항은 일반 문항 점수에서 제외한다. BIO003(이름)과 BIO004(만 나이)는 관리자 식별 정보로만 사용한다. 단, BIO001/BIO002/CB001은 하드 조건에, CB001/LG001/LG002는 국가 간 실행력에 별도 사용될 수 있다.
+- INFORMATION_ONLY 문항은 일반 문항 점수에서 제외한다. BIO003(이름)은 관리자 식별 정보로만 사용하고, BIO004(만 나이)는 관리자 표시와 AGE001 나이 차이 하드 조건에 사용한다. 단, BIO001/BIO002/CB001은 하드 조건에, CB001/LG001/LG002는 국가 간 실행력에 별도 사용될 수 있다.
 - 특별 교차 쌍이 아닌 문항은 A/B 모두 답했을 때만 점수에 포함한다. 한쪽이라도 누락되면 해당 문항은 건너뛴다.
 - HARD_CONDITION 문항도 하드 판정 후 일반 직접 유사도 점수에 포함된다.
 - importanceMultiplier(q) = (multiplier(A.importance[q]) + multiplier(B.importance[q])) / 2.
@@ -223,7 +230,7 @@ ${relationshipWeightText()}
 
 ## 9. 적응형 설문 흐름
 - 최대 질문 수는 40개다. BIO001/BIO002/BIO003/BIO004(성별, 선호 성별, 이름, 만 나이)는 시작 화면에서 별도로 수집되고, 프로필 완성도 계산에는 포함된다.
-- 본 설문 공통 시작: R001,R002,CB001,CB002.
+- 본 설문 공통 시작: R001,R002,AGE001,CB001,CB002.
 - 공통 핵심: CM001,CM002,LS001,LS002,LS003,LS004,PS001,PS002,VL001,VL003,SM001,AL001.
 - R001=MARRIAGE 분기: MR001,MR002,CH001,CB003,CB004,CB005,CR001,FN001,FM001,FM003.
 - R001=LONG_TERM 분기: MR001,CH001,CB003,CB004,CB005,CR001,FN001,FM003,AF001,AF002.

@@ -167,3 +167,24 @@ test("complementary planning uses the documented matrix", () => {
   );
   assert.equal(result.questionDetails.find((detail) => detail.id === "DT003")?.score, 100);
 });
+
+test("age-gap preference requires both people to accept the actual age difference", () => {
+  const shared = {
+    R001: "LONG_TERM",
+    R002: "EXCLUSIVE",
+    CB001: "KOREA",
+    CB002: "YES",
+  };
+  const a = profile("age-a", { ...shared, ...reciprocalIdentity.a, BIO004: 25, AGE001: "4" });
+  const accepted = profile("age-ok", { ...shared, ...reciprocalIdentity.b, BIO004: 29, AGE001: "6" });
+  const rejected = profile("age-no", { ...shared, ...reciprocalIdentity.b, BIO004: 30, AGE001: "6" });
+
+  const acceptedResult = calculateMatch(a, accepted);
+  assert.equal(acceptedResult.hardChecks.find((check) => check.id === "ageRange")?.status, "pass");
+  assert.equal(acceptedResult.questionDetails.find((detail) => detail.id === "AGE001")?.score, 100);
+
+  const rejectedResult = calculateMatch(a, rejected);
+  assert.equal(rejectedResult.eligible, false);
+  assert.equal(rejectedResult.hardChecks.find((check) => check.id === "ageRange")?.status, "conflict");
+  assert.match(rejectedResult.conflicts.join(" "), /실제 나이 차이 5살/);
+});

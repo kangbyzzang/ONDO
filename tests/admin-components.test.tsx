@@ -59,10 +59,11 @@ test("admin match evidence renders detailed calculation data", () => {
 test("admin algorithm reference renders the live configuration", () => {
   const html = renderToStaticMarkup(<AlgorithmPanel />);
   assert.match(html, /현재 매칭 알고리즘/);
-  assert.match(html, /2\.1\.0/);
+  assert.match(html, /2\.2\.0/);
   assert.match(html, /AI 전달용 전체 알고리즘 명세/);
   assert.match(html, /전체 명세 복사/);
-  assert.match(html, /7개 하드 조건/);
+  assert.match(html, /8개 하드 조건/);
+  assert.match(html, /AGE001/);
   assert.match(html, /eligible=false/);
   assert.match(html, /LG003과 LG004/);
   assert.match(html, /국가 간 실행력/);

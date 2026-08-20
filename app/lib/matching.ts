@@ -42,7 +42,7 @@ export interface MatchResult {
 }
 
 export interface HardCheckResult {
-  id: "gender" | "relationshipStyle" | "children" | "smoking" | "distance" | "intent" | "marriageReadiness";
+  id: "gender" | "ageRange" | "relationshipStyle" | "children" | "smoking" | "distance" | "intent" | "marriageReadiness";
   label: string;
   status: "pass" | "conflict" | "unknown";
   detail: string;
@@ -162,10 +162,10 @@ export const importanceMultipliers: Record<number, number> = {
 const importanceMultiplier = (value: number | undefined) => importanceMultipliers[value ?? 1] ?? 1;
 
 export const algorithmConfig = {
-  version: "2.1.0",
-  updatedAt: "2026-08-19",
+  version: "2.2.0",
+  updatedAt: "2026-08-20",
   formulas: [
-    "7개 하드 조건을 먼저 평가하고 conflict가 하나라도 있으면 추천 제외",
+    "8개 하드 조건을 먼저 평가하고 conflict가 하나라도 있으면 추천 제외",
     "문항 유효 가중치 = 기본 가중치 × 두 사용자의 중요도 배수 평균",
     "모듈 점수 = 모듈 내 Σ(문항 점수×유효 가중치) ÷ Σ(유효 가중치)",
     "최종 점수 = 실제 계산된 모듈만 관계 목적별 평균 가중치로 재정규화해 합산",
@@ -174,6 +174,7 @@ export const algorithmConfig = {
   ],
   hardConditions: [
     "서로의 성별 선호가 맞지 않거나 성별 정보가 없는 경우",
+    "실제 만 나이 차이가 두 사람 중 한 명 이상의 최대 허용 범위를 초과하는 경우",
     "절대 조건인 독점 관계와 비독점 관계가 충돌하는 경우",
     "자녀를 반드시 원하는 사람과 절대 원하지 않는 사람이 만나는 경우",
     "비흡연자만 원하는 사람과 흡연자가 만나는 경우",
@@ -195,6 +196,11 @@ export function evaluateHardConditions(a: MatchProfile, b: MatchProfile): HardCh
   const acceptsGender = (preference: unknown, gender: unknown) =>
     preference === "ANY" || preference === gender;
   const add = (check: HardCheckResult) => checks.push(check);
+  const ageGapLimit = (value: unknown) => {
+    if (value === "ANY") return Number.POSITIVE_INFINITY;
+    const parsed = Number(value);
+    return [0, 2, 4, 6, 10].includes(parsed) ? parsed : null;
+  };
 
   if (!aa.BIO001 || !aa.BIO002 || !bb.BIO001 || !bb.BIO002) {
     add({ id: "gender", label: "성별 선호", status: "conflict", detail: "성별 또는 선호 성별 정보가 없어 추천에서 제외됩니다." });
@@ -202,6 +208,28 @@ export function evaluateHardConditions(a: MatchProfile, b: MatchProfile): HardCh
     add({ id: "gender", label: "성별 선호", status: "conflict", detail: "서로가 원하는 상대 성별 조건이 맞지 않습니다." });
   } else {
     add({ id: "gender", label: "성별 선호", status: "pass", detail: "서로의 성별 선호 조건을 만족합니다." });
+  }
+
+  const aAge = typeof aa.BIO004 === "number" ? aa.BIO004 : null;
+  const bAge = typeof bb.BIO004 === "number" ? bb.BIO004 : null;
+  const aAgeLimit = ageGapLimit(aa.AGE001);
+  const bAgeLimit = ageGapLimit(bb.AGE001);
+  if (aAge === null || bAge === null || aAgeLimit === null || bAgeLimit === null) {
+    add({ id: "ageRange", label: "나이 차이", status: "unknown", detail: "만 나이 또는 허용 가능한 나이 차이 답변이 부족합니다." });
+  } else {
+    const ageGap = Math.abs(aAge - bAge);
+    const ageConflict = ageGap > aAgeLimit || ageGap > bAgeLimit;
+    if (ageConflict) {
+      const limitLabel = (limit: number) => Number.isFinite(limit) ? `${limit}살` : "무관";
+      add({
+        id: "ageRange",
+        label: "나이 차이",
+        status: "conflict",
+        detail: `실제 나이 차이 ${ageGap}살이 한 명 이상의 허용 범위를 초과합니다. (A ${limitLabel(aAgeLimit)}, B ${limitLabel(bAgeLimit)})`,
+      });
+    } else {
+      add({ id: "ageRange", label: "나이 차이", status: "pass", detail: `실제 나이 차이 ${ageGap}살이 두 사람의 허용 범위 안입니다.` });
+    }
   }
 
   const relationshipStyleConflict =
@@ -447,7 +475,13 @@ export function calculateMatch(a: MatchProfile, b: MatchProfile): MatchResult {
     const av = a.answers[definition.id];
     const bv = b.answers[definition.id];
     if (av === undefined || bv === undefined) continue;
-    const score = directQuestionScore(definition.id, av, bv);
+    const ageCheck = definition.id === "AGE001"
+      ? hardChecks.find((check) => check.id === "ageRange")
+      : undefined;
+    const score = definition.id === "AGE001"
+      ? ageCheck?.status === "pass" ? 100 : ageCheck?.status === "conflict" ? 0 : null
+      : directQuestionScore(definition.id, av, bv);
+    if (score === null) continue;
     const importance = (importanceMultiplier(a.importance?.[definition.id]) + importanceMultiplier(b.importance?.[definition.id])) / 2;
     const weight = definition.baseWeight * importance;
     const bucket = moduleBuckets.get(definition.module) ?? { weighted: 0, weight: 0, shared: 0 };

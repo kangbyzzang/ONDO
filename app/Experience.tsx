@@ -762,14 +762,14 @@ export function AdminExperience() {
             </div>
 
             <div className="condition-box">
-              <div><span>!</span><div><strong>절대 조건 {absoluteCount}개 설정</strong><small>관계 목적·자녀·흡연·장거리 조건을 우선 검증해요.</small></div></div>
+              <div><span>!</span><div><strong>절대 조건 {absoluteCount}개 설정</strong><small>관계 목적·나이 차이·자녀·흡연·장거리 조건을 우선 검증해요.</small></div></div>
               <button type="button">조건 보기</button>
             </div>
 
             <section className="answer-section" id="questions">
               <div className="section-heading"><div><small>CORE ANSWERS</small><h3>핵심 응답 요약</h3></div><button type="button">전체 보기 →</button></div>
               <div className="answer-grid">
-                {["BIO003", "BIO004", "BIO001", "BIO002", "R001", "R002", "CB002", "CH001"].map((id) => {
+                {["BIO003", "BIO004", "AGE001", "BIO001", "BIO002", "R001", "R002", "CB002", "CH001"].map((id) => {
                   const question = questionMap.get(id);
                   const value = selected.answers[id];
                   if (!question || value === undefined) return null;

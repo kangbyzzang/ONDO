@@ -138,6 +138,24 @@ export const questions: QuestionDefinition[] = [
     baseWeight: 0,
   },
   {
+    id: "AGE001",
+    module: "intent",
+    ko: "만나고 싶은 상대와 최대 몇 살 차이까지 괜찮나요?",
+    ja: "お相手との年齢差は最大何歳まで大丈夫ですか？",
+    type: "single",
+    options: [
+      o("0", "동갑만", "同い年のみ"),
+      o("2", "2살 차이까지", "2歳差まで"),
+      o("4", "4살 차이까지", "4歳差まで"),
+      o("6", "6살 차이까지", "6歳差まで"),
+      o("10", "10살 차이까지", "10歳差まで"),
+      o("ANY", "나이 차이는 상관없어요", "年齢差は気にしない"),
+    ],
+    required: true,
+    logic: "HARD_CONDITION",
+    baseWeight: 1.3,
+  },
+  {
     id: "R001",
     module: "intent",
     ko: "지금 어떤 관계를 찾고 있나요?",
@@ -388,7 +406,7 @@ export const questions: QuestionDefinition[] = [
 
 const byId = new Map(questions.map((question) => [question.id, question]));
 
-const phaseOne = ["R001", "R002", "CB001", "CB002"];
+const phaseOne = ["R001", "R002", "AGE001", "CB001", "CB002"];
 const core = ["CM001", "CM002", "LS001", "LS002", "LS003", "LS004", "PS001", "PS002", "VL001", "VL003", "SM001", "AL001"];
 const marriage = ["MR001", "MR002", "CH001", "CB003", "CB004", "CB005", "CR001", "FN001", "FM001", "FM003"];
 const longTerm = ["MR001", "CH001", "CB003", "CB004", "CB005", "CR001", "FN001", "FM003", "AF001", "AF002"];

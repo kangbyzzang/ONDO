@@ -87,6 +87,18 @@ test("uses reciprocal gender preference as a matching condition", async () => {
   assert.match(matching, /서로가 원하는 상대 성별 조건이 맞지 않습니다/);
 });
 
+test("asks and documents reciprocal age-gap preference", async () => {
+  const [questions, matching, documentation] = await Promise.all([
+    readFile(new URL("../app/data/questions.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/matching.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/algorithm-documentation.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(questions, /AGE001/);
+  assert.match(questions, /최대 몇 살 차이까지/);
+  assert.match(matching, /ageRange/);
+  assert.match(documentation, /ageGap/);
+});
+
 test("ships the bespoke social card and removes the starter preview", async () => {
   const socialCard = await readFile(new URL("../app/opengraph-image.tsx", import.meta.url), "utf8");
   assert.match(socialCard, /ImageResponse/);
