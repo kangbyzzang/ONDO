@@ -41,7 +41,7 @@ export interface QuestionDefinition {
   module: QuestionModule;
   ko: string;
   ja: string;
-  type: "scale10" | "scale5" | "single" | "frequency5";
+  type: "scale10" | "scale5" | "single" | "frequency5" | "text" | "number";
   options?: QuestionOption[];
   left?: { ko: string; ja: string };
   right?: { ko: string; ja: string };
@@ -113,6 +113,27 @@ export const questions: QuestionDefinition[] = [
       o("ANY", "성별 무관", "性別を問わない"),
     ],
     required: true,
+    logic: "INFORMATION_ONLY",
+    baseWeight: 0,
+  },
+  {
+    id: "BIO003",
+    module: "intent",
+    ko: "이름",
+    ja: "名前",
+    type: "text",
+    required: true,
+    logic: "INFORMATION_ONLY",
+    baseWeight: 0,
+  },
+  {
+    id: "BIO004",
+    module: "intent",
+    ko: "만 나이",
+    ja: "年齢（満年齢）",
+    type: "number",
+    required: true,
+    sensitive: true,
     logic: "INFORMATION_ONLY",
     baseWeight: 0,
   },

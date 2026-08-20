@@ -111,10 +111,13 @@ export async function listSubmissionsForAdmin(): Promise<MatchProfile[]> {
 
   return snapshot.docs.map((record) => {
     const data = record.data() as SubmissionDocument;
+    const submittedName = data.answers?.BIO003;
     return {
       id: record.id,
       instagram: data.instagram,
-      name: data.instagram.replace(/^@/, ""),
+      name: typeof submittedName === "string" && submittedName.trim()
+        ? submittedName.trim()
+        : data.instagram.replace(/^@/, ""),
       locale: data.locale,
       answers: data.answers ?? {},
       importance: data.importance ?? {},

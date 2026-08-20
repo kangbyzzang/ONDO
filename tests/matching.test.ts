@@ -126,6 +126,8 @@ test("all documented hard conflicts exclude the pair", () => {
 test("the adaptive flow asks all essential dealbreakers and completes at 100 percent", () => {
   const answers: MatchProfile["answers"] = {
     ...reciprocalIdentity.a,
+    BIO003: "테스트 사용자",
+    BIO004: 25,
     R001: "MARRIAGE",
   };
 

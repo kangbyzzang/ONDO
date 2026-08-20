@@ -46,12 +46,17 @@ const copy = {
     headlineB: "대화 전에도 보이는 게 있어요.",
     body: "당신이 원하는 관계와 생활 방식을 차분히 알아보고, 서로에게 좋은 인연이 될 가능성을 섬세하게 분석해요.",
     instagram: "먼저 인스타그램 아이디를 알려주세요",
+    name: "이름",
+    namePlaceholder: "이름을 입력해주세요",
+    age: "만 나이",
+    agePlaceholder: "예: 25",
     gender: "나의 성별",
     preferredGender: "만나고 싶은 상대",
     genderRequired: "성별과 만나고 싶은 상대를 선택해주세요.",
+    profileRequired: "이름과 만 나이를 정확히 입력해주세요. (만 18–99세)",
     placeholder: "your.instagram",
     start: "나와 잘 맞는 인연 알아보기",
-    privacy: "아이디는 운영팀 확인용이며 공개 프로필에 바로 노출되지 않아요.",
+    privacy: "입력한 정보는 운영팀의 매칭 분석에만 사용되며 공개 프로필에 바로 노출되지 않아요.",
     minutes: "약 6분",
     questions: "30–40문항",
     adaptive: "맞춤형 질문",
@@ -75,12 +80,17 @@ const copy = {
     headlineB: "話す前から見えることがあります。",
     body: "あなたが望む関係と暮らし方を知り、お互いに良いご縁になれる可能性を丁寧に分析します。",
     instagram: "まずInstagramのIDを教えてください",
+    name: "名前",
+    namePlaceholder: "名前を入力してください",
+    age: "年齢（満年齢）",
+    agePlaceholder: "例：25",
     gender: "私の性別",
     preferredGender: "出会いたい相手",
     genderRequired: "性別と出会いたい相手を選択してください。",
+    profileRequired: "名前と満年齢を正しく入力してください。（18〜99歳）",
     placeholder: "your.instagram",
     start: "相性の良いご縁を知る",
-    privacy: "IDは運営チームの確認用で、公開プロフィールにはすぐ表示されません。",
+    privacy: "入力した情報は運営チームのマッチング分析にのみ使用され、公開プロフィールにはすぐ表示されません。",
     minutes: "約6分",
     questions: "30〜40問",
     adaptive: "適応型質問",
@@ -161,20 +171,28 @@ function LanguageToggle({ locale, onChange }: { locale: Locale; onChange: (local
 function Landing({
   locale,
   instagram,
+  name,
+  age,
   gender,
   preferredGender,
   error,
   onInstagram,
+  onName,
+  onAge,
   onGender,
   onPreferredGender,
   onStart,
 }: {
   locale: Locale;
   instagram: string;
+  name: string;
+  age: string;
   gender: Gender | "";
   preferredGender: GenderPreference | "";
   error: string;
   onInstagram: (value: string) => void;
+  onName: (value: string) => void;
+  onAge: (value: string) => void;
   onGender: (value: Gender) => void;
   onPreferredGender: (value: GenderPreference) => void;
   onStart: () => void;
@@ -201,6 +219,31 @@ function Landing({
               placeholder={t.placeholder}
               aria-describedby="instagram-note"
             />
+          </div>
+          <div className="personal-fields">
+            <label>
+              <span>{t.name}</span>
+              <input
+                autoComplete="name"
+                maxLength={40}
+                value={name}
+                onChange={(event) => onName(event.target.value)}
+                placeholder={t.namePlaceholder}
+              />
+            </label>
+            <label>
+              <span>{t.age}</span>
+              <input
+                autoComplete="bday-year"
+                inputMode="numeric"
+                min={18}
+                max={99}
+                type="number"
+                value={age}
+                onChange={(event) => onAge(event.target.value)}
+                placeholder={t.agePlaceholder}
+              />
+            </label>
           </div>
           <div className="identity-fields">
             <fieldset>
@@ -368,6 +411,8 @@ export function UserExperience() {
   const [locale, setLocale] = useState<Locale>("ko");
   const [stage, setStage] = useState<Stage>("welcome");
   const [instagram, setInstagram] = useState("");
+  const [name, setName] = useState("");
+  const [age, setAge] = useState("");
   const [gender, setGender] = useState<Gender | "">("");
   const [preferredGender, setPreferredGender] = useState<GenderPreference | "">("");
   const [error, setError] = useState("");
@@ -388,12 +433,25 @@ export function UserExperience() {
       setError(locale === "ko" ? "인스타그램 아이디를 확인해주세요." : "Instagram IDを確認してください。");
       return;
     }
+    const cleanName = name.trim();
+    const numericAge = Number(age);
+    if (!cleanName || cleanName.length > 40 || !Number.isInteger(numericAge) || numericAge < 18 || numericAge > 99) {
+      setError(copy[locale].profileRequired);
+      return;
+    }
     if (!gender || !preferredGender) {
       setError(copy[locale].genderRequired);
       return;
     }
     setInstagram(`@${clean}`);
-    setAnswers((current) => ({ ...current, BIO001: gender, BIO002: preferredGender }));
+    setName(cleanName);
+    setAnswers((current) => ({
+      ...current,
+      BIO001: gender,
+      BIO002: preferredGender,
+      BIO003: cleanName,
+      BIO004: numericAge,
+    }));
     setError("");
     setStage("questions");
   };
@@ -446,10 +504,14 @@ export function UserExperience() {
         <Landing
           locale={locale}
           instagram={instagram}
+          name={name}
+          age={age}
           gender={gender}
           preferredGender={preferredGender}
           error={error}
           onInstagram={(value) => { setInstagram(value); setError(""); }}
+          onName={(value) => { setName(value); setError(""); }}
+          onAge={(value) => { setAge(value); setError(""); }}
           onGender={(value) => { setGender(value); setError(""); }}
           onPreferredGender={(value) => { setPreferredGender(value); setError(""); }}
           onStart={start}
@@ -486,6 +548,11 @@ function intentLabel(value: unknown) {
 function genderLabel(value: unknown) {
   const labels: Record<string, string> = { WOMAN: "여성", MAN: "남성", NON_BINARY: "기타" };
   return labels[String(value)] ?? "미입력";
+}
+
+function ageLabel(value: unknown) {
+  const age = Number(value);
+  return Number.isInteger(age) && age >= 18 && age <= 99 ? `만 ${age}세` : "나이 미입력";
 }
 
 export function AdminExperience() {
@@ -631,7 +698,7 @@ export function AdminExperience() {
                   <button className={`person-row ${active ? "active" : ""}`} key={profile.id} onClick={() => setSelectedId(profile.id)} type="button">
                     <span className="person-avatar">{(profile.name ?? profile.instagram.replace("@", "")).slice(0, 1).toUpperCase()}</span>
                     <span><strong>{profile.name ?? profile.instagram}</strong><small>{profile.instagram}</small></span>
-                    <span className="person-meta"><b>{profileCompletion(profile)}%</b><small>{genderLabel(profile.answers.BIO001)} · {countryLabel(profile.answers.CB001)}</small></span>
+                    <span className="person-meta"><b>{profileCompletion(profile)}%</b><small>{genderLabel(profile.answers.BIO001)} · {ageLabel(profile.answers.BIO004)} · {countryLabel(profile.answers.CB001)}</small></span>
                   </button>
                 );
               })}
@@ -641,7 +708,7 @@ export function AdminExperience() {
           <section className="profile-panel">
             <div className="profile-heading">
               <div className="profile-avatar">{(selected.name ?? selected.instagram).slice(0, 1)}</div>
-              <div><small>SELECTED PROFILE</small><h2>{selected.name ?? selected.instagram.replace("@", "")}</h2><p>{selected.instagram} · {genderLabel(selected.answers.BIO001)} · {countryLabel(selected.answers.CB001)}</p></div>
+              <div><small>SELECTED PROFILE</small><h2>{selected.name ?? selected.instagram.replace("@", "")}</h2><p>{selected.instagram} · {genderLabel(selected.answers.BIO001)} · {ageLabel(selected.answers.BIO004)} · {countryLabel(selected.answers.CB001)}</p></div>
               <span className="intent-badge">{intentLabel(selected.answers.R001)}</span>
             </div>
 
@@ -661,7 +728,7 @@ export function AdminExperience() {
             <section className="answer-section" id="questions">
               <div className="section-heading"><div><small>CORE ANSWERS</small><h3>핵심 응답 요약</h3></div><button type="button">전체 보기 →</button></div>
               <div className="answer-grid">
-                {["BIO001", "BIO002", "R001", "R002", "CB002", "CH001"].map((id) => {
+                {["BIO003", "BIO004", "BIO001", "BIO002", "R001", "R002", "CB002", "CH001"].map((id) => {
                   const question = questionMap.get(id);
                   const value = selected.answers[id];
                   if (!question || value === undefined) return null;

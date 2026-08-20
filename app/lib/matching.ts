@@ -519,7 +519,7 @@ export function calculateMatch(a: MatchProfile, b: MatchProfile): MatchResult {
 }
 
 export function profileCompletion(profile: MatchProfile) {
-  const relevantIds = new Set(["BIO001", "BIO002", ...getQuestionFlow(profile.answers).map((question) => question.id)]);
+  const relevantIds = new Set(["BIO001", "BIO002", "BIO003", "BIO004", ...getQuestionFlow(profile.answers).map((question) => question.id)]);
   const relevant = questions.filter((question) => relevantIds.has(question.id));
   const answered = relevant.filter((question) => profile.answers[question.id] !== undefined).length;
   return Math.min(100, Math.round((answered / Math.max(1, relevant.length)) * 100));

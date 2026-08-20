@@ -35,7 +35,7 @@ export const logicDescriptions: Record<QuestionDefinition["logic"], string> = {
   INFORMATION_ONLY: "일반 문항 점수에서는 제외; 일부는 하드 조건·국가 간 실행력 계산에 별도 사용",
 };
 
-const intakeQuestionIds = new Set(["BIO001", "BIO002"]);
+const intakeQuestionIds = new Set(["BIO001", "BIO002", "BIO003", "BIO004"]);
 const sharedQuestionIds = new Set([
   "R001", "R002", "CB001", "CB002", "CM001", "CM002", "LS001", "LS002", "LS003", "LS004",
   "PS001", "PS002", "VL001", "VL003", "SM001", "AL001",
@@ -55,6 +55,8 @@ function inclusionDescription(question: QuestionDefinition) {
 }
 
 function answerSchema(question: QuestionDefinition) {
+  if (question.type === "text") return "1..40자 자유 입력 문자열";
+  if (question.type === "number") return "18..99 정수; 만 나이";
   if (question.options) {
     return question.options.map((option) => `${option.value}=${option.ko}`).join(" | ");
   }
@@ -183,7 +185,7 @@ H7 결혼 의향
 - LG003과 LG004는 ONE_WAY_FIT으로 표시되어 있지만 현재 특별 교차 쌍에는 없으므로 실제로는 숫자 직접 유사도로 계산된다.
 
 ## 5. 문항·모듈·최종 점수 집계
-- INFORMATION_ONLY 문항은 일반 문항 점수에서 제외한다. 단, BIO001/BIO002/CB001은 하드 조건에, CB001/LG001/LG002는 국가 간 실행력에 별도 사용될 수 있다.
+- INFORMATION_ONLY 문항은 일반 문항 점수에서 제외한다. BIO003(이름)과 BIO004(만 나이)는 관리자 식별 정보로만 사용한다. 단, BIO001/BIO002/CB001은 하드 조건에, CB001/LG001/LG002는 국가 간 실행력에 별도 사용될 수 있다.
 - 특별 교차 쌍이 아닌 문항은 A/B 모두 답했을 때만 점수에 포함한다. 한쪽이라도 누락되면 해당 문항은 건너뛴다.
 - HARD_CONDITION 문항도 하드 판정 후 일반 직접 유사도 점수에 포함된다.
 - importanceMultiplier(q) = (multiplier(A.importance[q]) + multiplier(B.importance[q])) / 2.
@@ -220,7 +222,7 @@ ${relationshipWeightText()}
 - questionDetails는 최종 기여도나 가중치가 아니라 questionScore 내림차순으로 정렬한다.
 
 ## 9. 적응형 설문 흐름
-- 최대 질문 수는 40개다. BIO001/BIO002는 시작 화면에서 별도로 수집되고, 프로필 완성도 계산에는 포함된다.
+- 최대 질문 수는 40개다. BIO001/BIO002/BIO003/BIO004(성별, 선호 성별, 이름, 만 나이)는 시작 화면에서 별도로 수집되고, 프로필 완성도 계산에는 포함된다.
 - 본 설문 공통 시작: R001,R002,CB001,CB002.
 - 공통 핵심: CM001,CM002,LS001,LS002,LS003,LS004,PS001,PS002,VL001,VL003,SM001,AL001.
 - R001=MARRIAGE 분기: MR001,MR002,CH001,CB003,CB004,CB005,CR001,FN001,FM001,FM003.
@@ -234,7 +236,7 @@ ${relationshipWeightText()}
 ${questionRuleText()}
 
 ## 11. 관리자 보조 지표(최종 매칭 점수와 별개)
-- profileCompletion = answeredRelevantQuestions / relevantQuestions × 100. relevantQuestions는 BIO001,BIO002와 현재 answers로 생성한 적응형 질문 흐름이다. 최대 100, 정수 반올림.
+- profileCompletion = answeredRelevantQuestions / relevantQuestions × 100. relevantQuestions는 BIO001,BIO002,BIO003,BIO004와 현재 answers로 생성한 적응형 질문 흐름이다. 최대 100, 정수 반올림.
 - 국제연애 실행력 = round(avg(CB003,CB004,CB007,LG004; 숫자 답변만, 없으면 5) × 10), 0..100 제한.
 - 소통 안정성 = round(((avg(CF004; 없으면 3)-1)/4)×45 + (10-avg(CF001; 없으면 5))×3 + 30), 0..100 제한.
 - 장기 관계 준비도 = round(avg(MR001,CR001,VL004; 숫자 답변만, 없으면 5)/10×100), 0..100 제한.

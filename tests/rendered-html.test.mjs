@@ -12,6 +12,9 @@ test("contains the EEUM questionnaire landing experience", async () => {
   assert.match(layout, /https:\/\/eeumdating\.vercel\.app/);
   assert.match(experience, /잘 맞는 사람은/);
   assert.match(experience, /인스타그램 아이디/);
+  assert.match(experience, /이름/);
+  assert.match(experience, /만 나이/);
+  assert.match(experience, /年齢（満年齢）/);
   assert.match(experience, /나의 성별/);
   assert.match(experience, /만나고 싶은 상대/);
   assert.match(experience, /나와 잘 맞는 인연 알아보기/);
