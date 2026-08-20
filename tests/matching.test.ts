@@ -128,6 +128,8 @@ test("the adaptive flow asks all essential dealbreakers and completes at 100 per
     ...reciprocalIdentity.a,
     BIO003: "테스트 사용자",
     BIO004: 25,
+    AGE002: "BOTH",
+    AGE001: "10",
     R001: "MARRIAGE",
   };
 
@@ -168,23 +170,36 @@ test("complementary planning uses the documented matrix", () => {
   assert.equal(result.questionDetails.find((detail) => detail.id === "DT003")?.score, 100);
 });
 
-test("age-gap preference requires both people to accept the actual age difference", () => {
+test("age preference requires both people to accept direction and actual difference", () => {
   const shared = {
     R001: "LONG_TERM",
     R002: "EXCLUSIVE",
     CB001: "KOREA",
     CB002: "YES",
   };
-  const a = profile("age-a", { ...shared, ...reciprocalIdentity.a, BIO004: 25, AGE001: "4" });
-  const accepted = profile("age-ok", { ...shared, ...reciprocalIdentity.b, BIO004: 29, AGE001: "6" });
-  const rejected = profile("age-no", { ...shared, ...reciprocalIdentity.b, BIO004: 30, AGE001: "6" });
+  const a = profile("age-a", { ...shared, ...reciprocalIdentity.a, BIO004: 25, AGE002: "OLDER", AGE001: "4" });
+  const accepted = profile("age-ok", { ...shared, ...reciprocalIdentity.b, BIO004: 29, AGE002: "YOUNGER", AGE001: "6" });
+  const directionRejected = profile("age-direction", { ...shared, ...reciprocalIdentity.b, BIO004: 29, AGE002: "OLDER", AGE001: "6" });
+  const gapRejected = profile("age-gap", { ...shared, ...reciprocalIdentity.b, BIO004: 30, AGE002: "YOUNGER", AGE001: "6" });
 
   const acceptedResult = calculateMatch(a, accepted);
   assert.equal(acceptedResult.hardChecks.find((check) => check.id === "ageRange")?.status, "pass");
-  assert.equal(acceptedResult.questionDetails.find((detail) => detail.id === "AGE001")?.score, 100);
+  assert.equal(acceptedResult.questionDetails.find((detail) => detail.id === "AGE002:AGE001")?.score, 100);
 
-  const rejectedResult = calculateMatch(a, rejected);
-  assert.equal(rejectedResult.eligible, false);
-  assert.equal(rejectedResult.hardChecks.find((check) => check.id === "ageRange")?.status, "conflict");
-  assert.match(rejectedResult.conflicts.join(" "), /실제 나이 차이 5살/);
+  const directionResult = calculateMatch(a, directionRejected);
+  assert.equal(directionResult.eligible, false);
+  assert.equal(directionResult.hardChecks.find((check) => check.id === "ageRange")?.status, "conflict");
+  assert.match(directionResult.conflicts.join(" "), /연상만/);
+
+  const gapResult = calculateMatch(a, gapRejected);
+  assert.equal(gapResult.eligible, false);
+  assert.equal(gapResult.hardChecks.find((check) => check.id === "ageRange")?.status, "conflict");
+  assert.match(gapResult.conflicts.join(" "), /실제 나이 차이 5살/);
+
+  const flexibleA = profile("age-both-a", { ...shared, ...reciprocalIdentity.a, BIO004: 25, AGE002: "BOTH", AGE001: "4" });
+  const flexibleB = profile("age-both-b", { ...shared, ...reciprocalIdentity.b, BIO004: 28, AGE002: "BOTH", AGE001: "ANY" });
+  assert.equal(calculateMatch(flexibleA, flexibleB).hardChecks.find((check) => check.id === "ageRange")?.status, "pass");
+
+  const sameAgeFlow = getQuestionFlow({ R001: "LONG_TERM", AGE002: "SAME" });
+  assert.equal(sameAgeFlow.some((question) => question.id === "AGE001"), false);
 });

@@ -162,7 +162,7 @@ export const importanceMultipliers: Record<number, number> = {
 const importanceMultiplier = (value: number | undefined) => importanceMultipliers[value ?? 1] ?? 1;
 
 export const algorithmConfig = {
-  version: "2.2.0",
+  version: "2.3.0",
   updatedAt: "2026-08-20",
   formulas: [
     "8개 하드 조건을 먼저 평가하고 conflict가 하나라도 있으면 추천 제외",
@@ -174,7 +174,7 @@ export const algorithmConfig = {
   ],
   hardConditions: [
     "서로의 성별 선호가 맞지 않거나 성별 정보가 없는 경우",
-    "실제 만 나이 차이가 두 사람 중 한 명 이상의 최대 허용 범위를 초과하는 경우",
+    "실제 연상·연하 방향 또는 만 나이 차이가 두 사람 중 한 명 이상의 허용 범위를 벗어나는 경우",
     "절대 조건인 독점 관계와 비독점 관계가 충돌하는 경우",
     "자녀를 반드시 원하는 사람과 절대 원하지 않는 사람이 만나는 경우",
     "비흡연자만 원하는 사람과 흡연자가 만나는 경우",
@@ -201,6 +201,22 @@ export function evaluateHardConditions(a: MatchProfile, b: MatchProfile): HardCh
     const parsed = Number(value);
     return [0, 2, 4, 6, 10].includes(parsed) ? parsed : null;
   };
+  const ageDirection = (ownAge: number, partnerAge: number) =>
+    partnerAge > ownAge ? "OLDER" : partnerAge < ownAge ? "YOUNGER" : "SAME";
+  const acceptsAgeDirection = (preference: unknown, direction: string) =>
+    preference === "BOTH" || preference === direction;
+  const agePreferenceLabel = (answers: Answers) => {
+    const directionQuestion = questionMap.get("AGE002");
+    const gapQuestion = questionMap.get("AGE001");
+    const direction = answers.AGE002 !== undefined && directionQuestion
+      ? answerLabel(directionQuestion, answers.AGE002, "ko")
+      : "방향 미입력";
+    if (answers.AGE002 === "SAME") return direction;
+    const gap = answers.AGE001 !== undefined && gapQuestion
+      ? answerLabel(gapQuestion, answers.AGE001, "ko")
+      : "차이 미입력";
+    return `${direction}·${gap}`;
+  };
 
   if (!aa.BIO001 || !aa.BIO002 || !bb.BIO001 || !bb.BIO002) {
     add({ id: "gender", label: "성별 선호", status: "conflict", detail: "성별 또는 선호 성별 정보가 없어 추천에서 제외됩니다." });
@@ -212,23 +228,33 @@ export function evaluateHardConditions(a: MatchProfile, b: MatchProfile): HardCh
 
   const aAge = typeof aa.BIO004 === "number" ? aa.BIO004 : null;
   const bAge = typeof bb.BIO004 === "number" ? bb.BIO004 : null;
-  const aAgeLimit = ageGapLimit(aa.AGE001);
-  const bAgeLimit = ageGapLimit(bb.AGE001);
-  if (aAge === null || bAge === null || aAgeLimit === null || bAgeLimit === null) {
-    add({ id: "ageRange", label: "나이 차이", status: "unknown", detail: "만 나이 또는 허용 가능한 나이 차이 답변이 부족합니다." });
+  const aAgeLimit = aa.AGE002 === "SAME" ? 0 : ageGapLimit(aa.AGE001);
+  const bAgeLimit = bb.AGE002 === "SAME" ? 0 : ageGapLimit(bb.AGE001);
+  const validDirections = new Set(["OLDER", "YOUNGER", "BOTH", "SAME"]);
+  if (
+    aAge === null || bAge === null ||
+    !validDirections.has(String(aa.AGE002)) || !validDirections.has(String(bb.AGE002)) ||
+    aAgeLimit === null || bAgeLimit === null
+  ) {
+    add({ id: "ageRange", label: "나이 방향·차이", status: "unknown", detail: "만 나이, 선호 나이 방향 또는 허용 가능한 나이 차이 답변이 부족합니다." });
   } else {
     const ageGap = Math.abs(aAge - bAge);
-    const ageConflict = ageGap > aAgeLimit || ageGap > bAgeLimit;
+    const aDirection = ageDirection(aAge, bAge);
+    const bDirection = ageDirection(bAge, aAge);
+    const ageConflict =
+      !acceptsAgeDirection(aa.AGE002, aDirection) ||
+      !acceptsAgeDirection(bb.AGE002, bDirection) ||
+      ageGap > aAgeLimit ||
+      ageGap > bAgeLimit;
     if (ageConflict) {
-      const limitLabel = (limit: number) => Number.isFinite(limit) ? `${limit}살` : "무관";
       add({
         id: "ageRange",
-        label: "나이 차이",
+        label: "나이 방향·차이",
         status: "conflict",
-        detail: `실제 나이 차이 ${ageGap}살이 한 명 이상의 허용 범위를 초과합니다. (A ${limitLabel(aAgeLimit)}, B ${limitLabel(bAgeLimit)})`,
+        detail: `실제 나이 차이 ${ageGap}살(A 기준 B는 ${aDirection === "OLDER" ? "연상" : aDirection === "YOUNGER" ? "연하" : "동갑"})이 양쪽 선호를 동시에 만족하지 않습니다. (A ${agePreferenceLabel(aa)}, B ${agePreferenceLabel(bb)})`,
       });
     } else {
-      add({ id: "ageRange", label: "나이 차이", status: "pass", detail: `실제 나이 차이 ${ageGap}살이 두 사람의 허용 범위 안입니다.` });
+      add({ id: "ageRange", label: "나이 방향·차이", status: "pass", detail: `실제 나이 차이 ${ageGap}살과 연상·연하 방향이 두 사람의 선호 범위 안입니다.` });
     }
   }
 
@@ -434,6 +460,35 @@ export function calculateMatch(a: MatchProfile, b: MatchProfile): MatchResult {
   const consumed = new Set<string>();
   const questionDetails: QuestionMatchDetail[] = [];
 
+  const ageCheck = hardChecks.find((check) => check.id === "ageRange");
+  const ageDefinition = questionMap.get("AGE002");
+  if (ageDefinition && ageCheck && ageCheck.status !== "unknown") {
+    const score = ageCheck.status === "pass" ? 100 : 0;
+    const weight = ageDefinition.baseWeight;
+    const bucket = moduleBuckets.get(ageDefinition.module) ?? { weighted: 0, weight: 0, shared: 0 };
+    bucket.weighted += score * weight;
+    bucket.weight += weight;
+    bucket.shared += a.answers.AGE001 !== undefined && b.answers.AGE001 !== undefined ? 2 : 1;
+    moduleBuckets.set(ageDefinition.module, bucket);
+    const displayAgePreference = (profile: MatchProfile) => {
+      const direction = displayAnswer("AGE002", profile.answers.AGE002 as string | number);
+      if (profile.answers.AGE002 === "SAME") return direction;
+      return `${direction} / ${displayAnswer("AGE001", profile.answers.AGE001 as string | number)}`;
+    };
+    questionDetails.push({
+      id: "AGE002:AGE001",
+      label: "선호 나이 방향·최대 차이",
+      module: ageDefinition.module,
+      logic: "HARD_CONDITION",
+      score,
+      weight,
+      answerA: displayAgePreference(a),
+      answerB: displayAgePreference(b),
+    });
+  }
+  consumed.add("AGE002");
+  consumed.add("AGE001");
+
   const paired = [
     ["CM001", "CM002"],
     ["AF001", "AF002"],
@@ -475,13 +530,7 @@ export function calculateMatch(a: MatchProfile, b: MatchProfile): MatchResult {
     const av = a.answers[definition.id];
     const bv = b.answers[definition.id];
     if (av === undefined || bv === undefined) continue;
-    const ageCheck = definition.id === "AGE001"
-      ? hardChecks.find((check) => check.id === "ageRange")
-      : undefined;
-    const score = definition.id === "AGE001"
-      ? ageCheck?.status === "pass" ? 100 : ageCheck?.status === "conflict" ? 0 : null
-      : directQuestionScore(definition.id, av, bv);
-    if (score === null) continue;
+    const score = directQuestionScore(definition.id, av, bv);
     const importance = (importanceMultiplier(a.importance?.[definition.id]) + importanceMultiplier(b.importance?.[definition.id])) / 2;
     const weight = definition.baseWeight * importance;
     const bucket = moduleBuckets.get(definition.module) ?? { weighted: 0, weight: 0, shared: 0 };

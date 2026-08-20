@@ -94,6 +94,8 @@ test("asks and documents reciprocal age-gap preference", async () => {
     readFile(new URL("../app/lib/algorithm-documentation.ts", import.meta.url), "utf8"),
   ]);
   assert.match(questions, /AGE001/);
+  assert.match(questions, /AGE002/);
+  assert.match(questions, /연상·동갑·연하 모두/);
   assert.match(questions, /최대 몇 살 차이까지/);
   assert.match(matching, /ageRange/);
   assert.match(documentation, /ageGap/);

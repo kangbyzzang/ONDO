@@ -769,7 +769,7 @@ export function AdminExperience() {
             <section className="answer-section" id="questions">
               <div className="section-heading"><div><small>CORE ANSWERS</small><h3>핵심 응답 요약</h3></div><button type="button">전체 보기 →</button></div>
               <div className="answer-grid">
-                {["BIO003", "BIO004", "AGE001", "BIO001", "BIO002", "R001", "R002", "CB002", "CH001"].map((id) => {
+                {["BIO003", "BIO004", "AGE002", "AGE001", "BIO001", "BIO002", "R001", "R002", "CB002", "CH001"].map((id) => {
                   const question = questionMap.get(id);
                   const value = selected.answers[id];
                   if (!question || value === undefined) return null;

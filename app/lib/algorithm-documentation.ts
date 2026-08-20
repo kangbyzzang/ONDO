@@ -2,6 +2,7 @@ import { moduleLabels, questions, type QuestionDefinition } from "../data/questi
 import { algorithmConfig } from "./matching";
 
 export const questionConditionDescriptions: Record<string, string> = {
+  AGE001: "AGE002 ≠ SAME (동갑만 선택 시 최대 차이는 0살로 고정하고 질문 생략)",
   MR001: "R001 ∈ {MARRIAGE, LONG_TERM}",
   MR002: "R001 = MARRIAGE",
   CH001: "R001 ∈ {MARRIAGE, LONG_TERM}",
@@ -37,7 +38,7 @@ export const logicDescriptions: Record<QuestionDefinition["logic"], string> = {
 
 const intakeQuestionIds = new Set(["BIO001", "BIO002", "BIO003", "BIO004"]);
 const sharedQuestionIds = new Set([
-  "R001", "R002", "AGE001", "CB001", "CB002", "CM001", "CM002", "LS001", "LS002", "LS003", "LS004",
+  "R001", "R002", "AGE002", "CB001", "CB002", "CM001", "CM002", "LS001", "LS002", "LS003", "LS004",
   "PS001", "PS002", "VL001", "VL003", "SM001", "AL001",
 ]);
 const detailQuestionIds = new Set([
@@ -107,7 +108,7 @@ Updated: ${algorithmConfig.updatedAt}
 - 출력은 eligible, overall(0..100 정수), tier, confidence, 모듈 점수, 강점, 주의점, 하드 조건 판정, 문항별 근거, 국가 간 실행력이다.
 - 계산은 A/B 순서를 바꿔도 같은 결과가 나오도록 대칭적으로 설계되어 있다.
 - missing importance는 1로 처리한다. importance 값별 배수는 1→1.0, 2→1.25, 3→1.75, 4→2.4이다.
-- importance=4는 모든 차이를 자동 제외하지 않는다. R001, R002, MR001의 명시된 하드 조건에서만 '절대 조건' 플래그로 사용된다. AGE001은 importance와 무관하게 양쪽 최대 허용 범위를 항상 적용한다.
+- importance=4는 모든 차이를 자동 제외하지 않는다. R001, R002, MR001의 명시된 하드 조건에서만 '절대 조건' 플래그로 사용된다. AGE001/AGE002는 importance와 무관하게 양쪽 나이 방향과 최대 허용 범위를 항상 적용한다.
 
 ## 2. 실행 순서
 1. 8개 하드 조건을 먼저 평가한다.
@@ -125,11 +126,16 @@ H1 성별 선호
 - accepts(A.BIO002, B.BIO001) AND accepts(B.BIO002, A.BIO001)가 아니면 conflict, 둘 다 만족하면 pass.
 
 H2 나이 차이
-- BIO004(만 나이) 또는 AGE001(허용 가능한 최대 나이 차이)이 한쪽이라도 없거나 유효하지 않으면 unknown.
-- AGE001 값은 0,2,4,6,10 또는 ANY이며 ANY의 허용 한도는 무한대로 처리한다.
+- BIO004(만 나이) 또는 AGE002(선호 나이 방향)가 한쪽이라도 없거나 유효하지 않으면 unknown.
+- AGE002 값은 OLDER(연상만), YOUNGER(연하만), BOTH(연상·동갑·연하 모두), SAME(동갑만)이다.
+- direction(ownAge,partnerAge) := partnerAge>ownAge이면 OLDER, partnerAge<ownAge이면 YOUNGER, 같으면 SAME.
+- acceptsDirection(preference,direction) := preference=BOTH OR preference=direction.
+- AGE002=SAME이면 최대 차이는 0살로 고정하고 AGE001은 질문하지 않는다. 그 외에는 AGE001이 필요하다.
+- AGE001 값은 2,4,6,10 또는 ANY이며 ANY의 허용 한도는 무한대다. 과거 저장값 0도 호환을 위해 유효값으로 읽는다.
 - ageGap=abs(A.BIO004-B.BIO004).
-- ageGap > A의 AGE001 한도 또는 ageGap > B의 AGE001 한도이면 conflict. 두 조건을 모두 통과하면 pass.
-- AGE001의 일반 문항 점수는 하드 판정이 pass면 100, conflict면 0, unknown이면 점수 집계에서 제외한다.
+- acceptsDirection(A.AGE002,direction(A,B)) AND acceptsDirection(B.AGE002,direction(B,A))가 아니면 conflict.
+- ageGap > A의 한도 또는 ageGap > B의 한도이면 conflict. 방향과 차이를 모두 통과하면 pass.
+- AGE001과 AGE002는 하나의 결합 근거로 집계한다. pass면 100, conflict면 0, unknown이면 점수 집계에서 제외하며 baseWeight=1.3이다.
 
 H3 관계 형태
 - R002가 한쪽이라도 없으면 unknown.
@@ -230,7 +236,7 @@ ${relationshipWeightText()}
 
 ## 9. 적응형 설문 흐름
 - 최대 질문 수는 40개다. BIO001/BIO002/BIO003/BIO004(성별, 선호 성별, 이름, 만 나이)는 시작 화면에서 별도로 수집되고, 프로필 완성도 계산에는 포함된다.
-- 본 설문 공통 시작: R001,R002,AGE001,CB001,CB002.
+- 본 설문 공통 시작: R001,R002,AGE002,AGE001(AGE002≠SAME일 때),CB001,CB002.
 - 공통 핵심: CM001,CM002,LS001,LS002,LS003,LS004,PS001,PS002,VL001,VL003,SM001,AL001.
 - R001=MARRIAGE 분기: MR001,MR002,CH001,CB003,CB004,CB005,CR001,FN001,FM001,FM003.
 - R001=LONG_TERM 분기: MR001,CH001,CB003,CB004,CB005,CR001,FN001,FM003,AF001,AF002.
